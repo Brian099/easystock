@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>智能库存管理系统</title>
+    <!-- Local FontAwesome Icons -->
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="assets/css/style.css?v=2.2">
+</head>
+<body>
+
+    <!-- App Shell Container -->
+    <div id="app">
+        <!-- 0. INSTALL SCREEN -->
+        <div id="install-screen" class="screen">
+            <div class="login-card glass">
+                <div class="login-header">
+                    <div class="logo-icon"><i class="fa-solid fa-gears"></i></div>
+                    <h1>新系统安装引导</h1>
+                    <p>配置数据库连接及管理员账户</p>
+                </div>
+                <form id="install-form">
+                    <div class="input-group">
+                        <label for="install-db-host"><i class="fa-solid fa-server"></i> 数据库主机</label>
+                        <input type="text" id="install-db-host" required value="127.0.0.1">
+                    </div>
+                    <div class="input-group">
+                        <label for="install-db-name"><i class="fa-solid fa-database"></i> 数据库名</label>
+                        <input type="text" id="install-db-name" required value="stock">
+                    </div>
+                    <div class="input-group">
+                        <label for="install-db-user"><i class="fa-solid fa-user-lock"></i> 数据库用户名</label>
+                        <input type="text" id="install-db-user" required value="root">
+                    </div>
+                    <div class="input-group">
+                        <label for="install-db-pass"><i class="fa-solid fa-key"></i> 数据库密码</label>
+                        <input type="password" id="install-db-pass" placeholder="留空或输入数据库密码">
+                    </div>
+                    <hr class="form-divider" style="margin: 15px 0; border: none; border-top: 1px dashed var(--border-color);">
+                    <div class="input-group">
+                        <label for="install-admin-user"><i class="fa-solid fa-user-gear"></i> 管理员用户名</label>
+                        <input type="text" id="install-admin-user" required value="admin">
+                    </div>
+                    <div class="input-group">
+                        <label for="install-admin-pass"><i class="fa-solid fa-lock"></i> 管理员密码</label>
+                        <input type="password" id="install-admin-pass" required placeholder="至少 6 位，用于登录系统">
+                    </div>
+                    <div class="input-group" style="margin-top: 5px; margin-bottom: 15px;">
+                        <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                            <input type="checkbox" id="install-import-demo"> 导入预置演示/历史商品数据 (可选)
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="install-submit-btn">开始安装并初始化 <i class="fa-solid fa-check"></i></button>
+                    <div id="install-error" class="alert alert-danger hidden"></div>
+                    <div id="install-loading" class="loading-spinner hidden" style="padding: 10px 0;"><i class="fa-solid fa-spinner fa-spin"></i> 正在初始化并导入数据...</div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 1. LOGIN SCREEN -->
+        <div id="login-screen" class="screen active">
+            <div class="login-card glass">
+                <div class="login-header">
+                    <div class="logo-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <h1>库存管理系统</h1>
+                    <p>请登录您的账户</p>
+                </div>
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="login-username"><i class="fa-solid fa-user"></i> 用户名</label>
+                        <input type="text" id="login-username" required placeholder="请输入用户名" autocomplete="username">
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password"><i class="fa-solid fa-lock"></i> 密码</label>
+                        <input type="password" id="login-password" required placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">登录 <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+                    <div id="login-error" class="alert alert-danger hidden"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. MAIN APP SHELL -->
+        <div id="main-screen" class="screen">
+            <!-- Header Bar -->
+            <header class="app-header glass">
+                <button id="menu-toggle" class="header-btn"><i class="fa-solid fa-bars"></i></button>
+                <div class="app-title">
+                    <span class="title-text">智能库存</span>
+                </div>
+                <div class="user-status-area">
+                    <span id="header-user-role" class="badge">管理员</span>
+                    <button id="logout-btn" class="header-btn" title="退出登录"><i class="fa-solid fa-power-off"></i></button>
+                </div>
+            </header>
+
+            <!-- Navigation Drawer (Sidebar) -->
+            <aside id="app-drawer" class="app-drawer glass">
+                <div class="drawer-header">
+                    <div class="drawer-logo">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span>智能库存系统</span>
+                    </div>
+                    <button id="drawer-close" class="drawer-close-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <nav class="drawer-nav">
+                    <a href="#dashboard" class="nav-item active" data-target="dashboard"><i class="fa-solid fa-chart-simple"></i> 仪表盘</a>
+                    <a href="#products" class="nav-item" data-target="products"><i class="fa-solid fa-cubes"></i> 商品管理</a>
+                    <a href="#logs" class="nav-item" data-target="logs"><i class="fa-solid fa-clipboard-list"></i> 流转历史</a>
+                    <a href="#settings" class="nav-item" data-target="settings"><i class="fa-solid fa-gears"></i> 系统设置</a>
+                </nav>
+                <div class="drawer-footer">
+                    <p>当前登录: <strong id="drawer-username">--</strong></p>
+                </div>
+            </aside>
+            <div id="drawer-overlay" class="drawer-overlay"></div>
+
+            <!-- Page Content Wrapper -->
+            <main class="app-content">
+                <!-- A. DASHBOARD VIEW -->
+                <section id="view-dashboard" class="view active">
+                    <div class="view-header">
+                        <h2>统计看板</h2>
+                    </div>
+
+                    <!-- Metrics Row -->
+                    <div class="metrics-grid">
+                        <div class="metric-card card-gradient-1">
+                            <div class="metric-info">
+                                <h3>商品总数</h3>
+                                <p id="metric-total-items" class="metric-number">0</p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-box-archive"></i></div>
+                        </div>
+                        <div class="metric-card card-gradient-2">
+                            <div class="metric-info">
+                                <h3>库存总量</h3>
+                                <p id="metric-total-qty" class="metric-number">0</p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-warehouse"></i></div>
+                        </div>
+                        <div id="metric-low-stock-card" class="metric-card card-gradient-danger pointer">
+                            <div class="metric-info">
+                                <h3>缺货预警</h3>
+                                <p id="metric-low-stock" class="metric-number">0</p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Search Box -->
+                    <div class="quick-actions-section" style="margin-bottom: 25px;">
+                        <h3>商品快捷搜索</h3>
+                        <div class="search-filter-bar glass" style="margin-bottom: 0;">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                <input type="text" id="dashboard-search-input" placeholder="输入名称、型号、仓位检索商品...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Quick Shortcuts -->
+                    <div class="quick-actions-section">
+                        <h3>快捷操作</h3>
+                        <div class="quick-actions-grid">
+                            <button id="quick-in-btn" class="quick-btn"><i class="fa-solid fa-circle-plus"></i> <span>快速入库</span></button>
+                            <button id="quick-out-btn" class="quick-btn"><i class="fa-solid fa-circle-minus"></i> <span>快速出库</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Charts / Recent Activities -->
+                    <div class="dashboard-details">
+                        <div class="activity-card glass">
+                            <div class="card-header">
+                                <h3>最近库存变动</h3>
+                                <a href="#logs" class="btn btn-link">查看全部</a>
+                            </div>
+                            <div class="activity-list" id="dashboard-recent-logs">
+                                <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- B. PRODUCTS VIEW -->
+                <section id="view-products" class="view">
+                    <div class="view-header">
+                        <h2>商品管理</h2>
+                        <div class="view-header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" id="export-products-btn" class="btn btn-secondary btn-sm" title="导出商品数据为 CSV 表格"><i class="fa-solid fa-file-export"></i> 导出</button>
+                            <button type="button" id="import-products-btn" class="btn btn-secondary btn-sm" title="批量导入商品数据表格"><i class="fa-solid fa-file-import"></i> 导入</button>
+                            <button type="button" id="add-product-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 新增商品</button>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filters Bar -->
+                    <div class="search-filter-bar glass">
+                        <div class="search-input-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="product-search-input" placeholder="输入名称、型号、编码、仓位...">
+                            <button id="barcode-scan-shortcut" class="barcode-shortcut-btn" title="扫码"><i class="fa-solid fa-camera"></i></button>
+                        </div>
+                        
+                        <div class="filter-controls-row">
+                            <select id="product-filter-brand">
+                                <option value="">全部品牌</option>
+                            </select>
+                            <select id="product-filter-local">
+                                <option value="">全部仓位</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Products List Container -->
+                    <div id="products-list-container" class="products-list-wrapper">
+                        <!-- Loaded dynamically as cards on mobile, tables on desktop -->
+                        <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container" id="products-pagination">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- C. AUDIT LOGS VIEW -->
+                <section id="view-logs" class="view">
+                    <div class="view-header">
+                        <h2>收发历史明细</h2>
+                    </div>
+
+                    <!-- Logs Filter -->
+                    <div class="search-filter-bar glass logs-filter-bar">
+                        <div class="search-input-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="log-search-input" placeholder="输入商品名称或型号...">
+                        </div>
+                        <select id="log-filter-type">
+                            <option value="">所有类型</option>
+                            <option value="in">仅入库 (in)</option>
+                            <option value="out">仅出库 (out)</option>
+                            <option value="re">仅退货 (re)</option>
+                            <option value="del">仅删除 (del)</option>
+                        </select>
+                    </div>
+
+                    <!-- Timeline representation -->
+                    <div class="timeline-container" id="logs-timeline-container">
+                        <!-- Dynamically loaded -->
+                        <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>
+                    </div>
+                    
+                    <div class="pagination-container" id="logs-pagination"></div>
+                </section>
+
+                <!-- D. SETTINGS VIEW -->
+                <section id="view-settings" class="view">
+                    <div class="view-header">
+                        <h2>系统设置</h2>
+                    </div>
+
+                    <div class="settings-sections">
+                        <!-- Global Config -->
+                        <div class="settings-card glass">
+                            <h3><i class="fa-solid fa-screwdriver-wrench"></i> 系统业务规则设置</h3>
+                            <form id="global-settings-form">
+                                <div class="toggle-group" style="margin-bottom: 15px;">
+                                    <div class="toggle-label-desc">
+                                        <label for="setting-allow-edit">允许直接修改库存</label>
+                                        <p>开启后允许直接在商品详情页修改库存数值。关闭后只能通过出入库记录修改。</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-allow-edit">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-light); line-height: 1.6; padding: 10px 12px; background: var(--bg-color); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px;">
+                                    <i class="fa-solid fa-circle-info"></i> <strong>提示</strong>：商品单位、厂商/品牌和仓位候选项由系统<strong>自动从商品库中实时提取</strong>，录入商品时可直接选择或任意输入新名称。
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">保存设置</button>
+                            </form>
+                        </div>
+
+                        <!-- Change Password -->
+                        <div class="settings-card glass">
+                            <h3><i class="fa-solid fa-key"></i> 修改登录密码</h3>
+                            <form id="change-password-form">
+                                <div class="input-group">
+                                    <label for="old-pass">原密码</label>
+                                    <input type="password" id="old-pass" required placeholder="请输入原密码">
+                                </div>
+                                <div class="input-group">
+                                    <label for="new-pass">新密码</label>
+                                    <input type="password" id="new-pass" required placeholder="请输入新密码，最少6位">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">修改密码</button>
+                                <div id="pass-success" class="alert alert-success hidden"></div>
+                                <div id="pass-error" class="alert alert-danger hidden"></div>
+                            </form>
+                        </div>
+
+                        <!-- Barcode Maintenance (Admin Only) -->
+                        <div id="settings-barcodes-card" class="settings-card glass hidden">
+                            <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                                <h3><i class="fa-solid fa-barcode"></i> 商品条形码数据维护</h3>
+                                <button type="button" id="btn-check-barcodes" class="btn btn-secondary btn-sm"><i class="fa-solid fa-magnifying-glass"></i> 检测状态</button>
+                            </div>
+                            <hr class="form-divider" style="margin: 10px 0 15px 0; border: none; border-top: 1px dashed var(--border-color);">
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 15px;">
+                                <p>为系统中未录入条码的历史商品批量生成唯一的标准 13 位 EAN-13 商品条码。已录入条码的商品不受任何影响。</p>
+                            </div>
+                            <div id="barcode-stats-badge" style="padding: 10px 14px; border-radius: var(--border-radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); font-size: 13px; margin-bottom: 15px;">
+                                <i class="fa-solid fa-spinner fa-spin"></i> 正在读取条码统计数据...
+                            </div>
+                            <button type="button" id="btn-fill-barcodes" class="btn btn-primary btn-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> 一键自动补全缺失条码</button>
+                        </div>
+
+                        <!-- User Accounts Management (Admin Only) -->
+                        <div id="settings-users-card" class="settings-card glass hidden">
+                            <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                                <h3><i class="fa-solid fa-users-gear"></i> 用户账号管理</h3>
+                                <button type="button" id="settings-add-user-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> 新增账号</button>
+                            </div>
+                            <hr class="form-divider" style="margin: 10px 0 15px 0; border: none; border-top: 1px dashed var(--border-color);">
+                            <div class="users-list-wrapper" id="settings-users-list">
+                                <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载账号列表...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Bottom Navigation Bar (Dock) - Mobile specific helper -->
+            <nav class="mobile-bottom-dock glass">
+                <a href="#dashboard" class="dock-item active" data-target="dashboard">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <span>首页</span>
+                </a>
+                <a href="#products" class="dock-item" data-target="products">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>商品</span>
+                </a>
+                <a href="#logs" class="dock-item" data-target="logs">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>流转</span>
+                </a>
+                <a href="#settings" class="dock-item" data-target="settings">
+                    <i class="fa-solid fa-gears"></i>
+                    <span>设置</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- 3. DIALOG MODALS -->
+        <!-- A. Product Form Modal -->
+        <div id="product-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3 id="product-modal-title">新增商品</h3>
+                    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="product-form">
+                    <input type="hidden" id="prod-id">
+                    <div class="modal-body">
+                        <div class="input-group">
+                            <label for="prod-name">商品名称 *</label>
+                            <input type="text" id="prod-name" required placeholder="请输入商品名称">
+                        </div>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="prod-model">型号</label>
+                                <input type="text" id="prod-model" placeholder="型号">
+                            </div>
+                            <div class="input-group">
+                                <label for="prod-spec">规格</label>
+                                <input type="text" id="prod-spec" placeholder="规格">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="prod-barcode">条形码/编码</label>
+                                <div class="scan-input-container">
+                                    <input type="text" id="prod-barcode" placeholder="条码 (新增时自动生成)">
+                                    <div class="scan-input-actions">
+                                        <button type="button" class="scan-btn" id="generate-barcode-btn" title="重新随机生成条码"><i class="fa-solid fa-arrows-rotate"></i></button>
+                                        <button type="button" class="scan-btn" id="scan-barcode-btn" title="摄像头扫码录入"><i class="fa-solid fa-camera"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="prod-unit">单位</label>
+                                <div class="combobox-wrapper">
+                                    <input type="text" id="prod-unit" placeholder="选择或输入单位" autocomplete="off">
+                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-units-menu" title="展开单位选项"><i class="fa-solid fa-chevron-down"></i></button>
+                                    <div class="combobox-dropdown-menu" id="suggested-units-menu"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="prod-brand">厂商/品牌</label>
+                                <div class="combobox-wrapper">
+                                    <input type="text" id="prod-brand" placeholder="选择或输入厂商/品牌" autocomplete="off">
+                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-brands-menu" title="展开厂商选项"><i class="fa-solid fa-chevron-down"></i></button>
+                                    <div class="combobox-dropdown-menu" id="suggested-brands-menu"></div>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="prod-local">仓位</label>
+                                <div class="combobox-wrapper">
+                                    <input type="text" id="prod-local" placeholder="选择或输入仓位" autocomplete="off">
+                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-locals-menu" title="展开仓位选项"><i class="fa-solid fa-chevron-down"></i></button>
+                                    <div class="combobox-dropdown-menu" id="suggested-locals-menu"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="prod-price">价格 *</label>
+                                <input type="number" id="prod-price" step="0.01" required placeholder="0.00">
+                            </div>
+                            <div class="input-group" id="prod-stock-group">
+                                <label for="prod-stock">初始库存</label>
+                                <input type="number" id="prod-stock" value="0">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="prod-mark">备注</label>
+                            <input type="text" id="prod-mark" placeholder="备注信息">
+                        </div>
+
+                        <!-- Image Section -->
+                        <div class="image-uploader-section">
+                            <label>商品图片</label>
+                            <div class="image-previews-container" id="product-images-list">
+                                <!-- Uploaded image items loaded here dynamically -->
+                                <div class="upload-trigger-square" id="image-upload-trigger-area">
+                                    <input type="file" id="image-file-input" accept="image/*" class="hidden">
+                                    <i class="fa-solid fa-image"></i>
+                                    <span>相册选取</span>
+                                </div>
+                                <div class="upload-trigger-square" id="camera-upload-trigger-area">
+                                    <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="hidden">
+                                    <i class="fa-solid fa-camera"></i>
+                                    <span>相机拍照</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- B. Quick Transaction Modal (In/Out/Re) -->
+        <div id="quick-transaction-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3 id="quick-txn-title">库存出入库</h3>
+                    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="quick-txn-form">
+                    <input type="hidden" id="txn-selected-product-id" required>
+                    <div class="modal-body">
+                        <div class="input-group" id="txn-search-group">
+                            <label for="txn-product-search">搜索商品 (输入名称/型号/条码) *</label>
+                            <input type="text" id="txn-product-search" placeholder="输入关键字检索商品..." autocomplete="off">
+                        </div>
+                        
+                        <div class="input-group" id="txn-results-group">
+                            <label>检索结果 (点击选择商品) *</label>
+                            <div id="txn-search-results-list" class="txn-search-results-list">
+                                <div class="loading-spinner" style="padding: 15px;"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载商品...</div>
+                            </div>
+                        </div>
+
+                        <div id="txn-selected-product-preview" class="txn-selected-product-preview hidden">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div class="input-group">
+                            <label>操作类型 *</label>
+                            <div class="segment-control">
+                                <input type="radio" name="txn-type" id="txn-type-in" value="in" checked>
+                                <label for="txn-type-in" class="segment-label segment-in"><i class="fa-solid fa-circle-arrow-down"></i> 入库</label>
+                                
+                                <input type="radio" name="txn-type" id="txn-type-out" value="out">
+                                <label for="txn-type-out" class="segment-label segment-out"><i class="fa-solid fa-circle-arrow-up"></i> 出库</label>
+                                
+                                <input type="radio" name="txn-type" id="txn-type-re" value="re">
+                                <label for="txn-type-re" class="segment-label segment-re"><i class="fa-solid fa-rotate-left"></i> 退货</label>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="txn-quantity">数量 *</label>
+                            <div class="quantity-input-touch-stepper">
+                                <button type="button" class="stepper-btn minus" onclick="document.getElementById('txn-quantity').value = Math.max(1, parseInt(document.getElementById('txn-quantity').value)-1)">-</button>
+                                <input type="number" id="txn-quantity" value="1" min="1" required>
+                                <button type="button" class="stepper-btn plus" onclick="document.getElementById('txn-quantity').value = parseInt(document.getElementById('txn-quantity').value)+1">+</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="txn-mark">备注/记录说明</label>
+                            <input type="text" id="txn-mark" placeholder="如: 订单编号、客户名称等">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+                        <button type="submit" class="btn btn-primary" id="quick-txn-submit-btn">确认入库</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- C. Barcode Scanner Simulation Modal -->
+        <div id="barcode-scan-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3>模拟相机扫码</h3>
+                    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body scanner-body">
+                    <div class="scanner-viewfinder">
+                        <div class="laser-beam"></div>
+                        <div class="corners">
+                            <span class="tl"></span><span class="tr"></span>
+                            <span class="bl"></span><span class="br"></span>
+                        </div>
+                        <i class="fa-solid fa-barcode pulse-icon"></i>
+                    </div>
+                    <p class="scanner-instruction">对准商品条形码进行自动扫描</p>
+                    <div class="input-group">
+                        <label for="simulated-barcode-val">手动录入条码测试</label>
+                        <input type="text" id="simulated-barcode-val" placeholder="输入条码以模拟相机读取">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+                    <button type="button" class="btn btn-primary" id="simulated-scan-confirm-btn">确认扫描</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- D. User Form Modal -->
+        <div id="user-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3 id="user-modal-title">新增用户账号</h3>
+                    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="user-form">
+                    <input type="hidden" id="user-form-id">
+                    <div class="modal-body">
+                        <div class="input-group">
+                            <label for="user-form-username">用户名 *</label>
+                            <input type="text" id="user-form-username" required placeholder="请输入用户名" autocomplete="username">
+                        </div>
+                        <div class="input-group" id="user-form-password-group">
+                            <label for="user-form-password">密码 *</label>
+                            <input type="password" id="user-form-password" placeholder="请输入密码">
+                        </div>
+                        <div class="input-group">
+                            <label for="user-form-role">角色权限组 *</label>
+                            <select id="user-form-role" required>
+                                <option value="user">普通操作员 (user)</option>
+                                <option value="admin">系统管理员 (admin)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- F. Import Products Modal -->
+        <div id="import-products-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-file-import"></i> 批量导入商品表格</h3>
+                    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="import-products-form">
+                    <div class="modal-body">
+                        <!-- Step 1: Download template -->
+                        <div class="import-template-box" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--border-radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 15px; gap: 10px;">
+                            <div>
+                                <strong style="font-size: 13px;"><i class="fa-solid fa-file-csv"></i> 导入模板规范</strong>
+                                <p style="font-size: 12px; color: var(--text-light); margin-top: 2px;">请按照标准表格格式整理商品数据后导入</p>
+                            </div>
+                            <a href="api/import_products.php?action=template" class="btn btn-secondary btn-sm" download="商品批量导入模板.csv" style="flex-shrink: 0;">
+                                <i class="fa-solid fa-download"></i> 下载模板
+                            </a>
+                        </div>
+
+                        <!-- Step 2: Choose file -->
+                        <div class="input-group">
+                            <label for="import-file-input">选择 CSV 表格文件 (*.csv) *</label>
+                            <input type="file" id="import-file-input" accept=".csv,text/csv" required style="padding: 8px;">
+                        </div>
+
+                        <!-- Step 3: Conflict mode -->
+                        <div class="input-group">
+                            <label>遇到已存在的重复商品时：</label>
+                            <div style="display: flex; gap: 15px; margin-top: 6px; flex-wrap: wrap;">
+                                <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <input type="radio" name="import-mode" value="skip" checked> 跳过不处理
+                                </label>
+                                <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <input type="radio" name="import-mode" value="update"> 覆盖更新已有商品
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Auto Barcode checkbox -->
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" id="import-auto-barcode" checked> 自动为无条码的商品生成唯一 EAN-13 条形码
+                            </label>
+                        </div>
+
+                        <!-- Result message area -->
+                        <div id="import-result-box" class="alert alert-success hidden" style="margin-top: 15px; line-height: 1.5;"></div>
+                        <div id="import-error-box" class="alert alert-danger hidden" style="margin-top: 15px; line-height: 1.5;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+                        <button type="submit" id="import-submit-btn" class="btn btn-primary"><i class="fa-solid fa-upload"></i> 开始导入</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- E. Image Viewer Lightbox Modal -->
+        <div id="image-viewer-modal" class="modal viewer-modal" onclick="closeModal('image-viewer-modal')">
+            <div class="viewer-content">
+                <img id="viewer-img" src="" alt="Enlarged View">
+                <p class="viewer-caption">点击任意位置关闭</p>
+            </div>
+        </div>
+        
+        <!-- Global Alert Dialog toast notifications -->
+        <div id="toast" class="toast">提示信息</div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="assets/js/app.js?v=2.1"></script>
+</body>
+</html>

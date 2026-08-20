@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.6
+    container_name: stock_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: stock
+      MYSQL_USER: stock_user
+      MYSQL_PASSWORD: stock_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./stock.sql:/docker-entrypoint-initdb.d/stock.sql
+      - db_data:/var/lib/mysql
+
+  web:
+    build: .
+    container_name: stock_web
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=stock_user
+      - DB_PASS=stock_password
+      - DB_NAME=stock
+
+volumes:
+  db_data:

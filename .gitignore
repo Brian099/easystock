@@ -1,0 +1,18 @@
+# Sensitive database credentials
+api/db_config.php
+
+# User uploaded images & media
+uploads/*
+!uploads/.gitkeep
+
+# Temporary / OS generated files
+.DS_Store
+Thumbs.db
+*.tmp
+_temp*
+
+# Python cache & virtualenvs
+__pycache__/
+*.pyc
+.venv/
+venv/
