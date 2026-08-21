@@ -442,8 +442,8 @@ button, input, select, textarea {
     color: var(--primary-color);
 }
 
-/* Desktop Layout with Collapsible Sidebar */
-@media (min-width: 992px) {
+/* Desktop & Tablet Layout with Collapsible Sidebar */
+@media (min-width: 768px) {
     .app-drawer {
         left: 0 !important;
         background-color: var(--card-bg) !important;

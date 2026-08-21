@@ -93,10 +93,8 @@ function showMainScreen() {
     const mainScreen = document.getElementById('main-screen');
     mainScreen.classList.add('active');
     
-    // Restore sidebar collapsed preference on desktop
-    if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
-        mainScreen.classList.add('sidebar-collapsed');
-    }
+    // Apply responsive sidebar state (default expanded on desktop >=1200px, default collapsed on tablet 768px-1199px)
+    applySidebarState();
     
     // Set username in side drawer
     document.getElementById('drawer-username').textContent = state.user.username;
@@ -179,6 +177,34 @@ function loadViewData(viewId) {
 /* --------------------------------------------------
  * 2. Side Drawer & Navigation interactions
  * -------------------------------------------------- */
+function applySidebarState() {
+    const mainScreen = document.getElementById('main-screen');
+    if (!mainScreen) return;
+    
+    const width = window.innerWidth;
+    if (width >= 1200) {
+        // PC / Large Screen (>= 1200px): Default EXPANDED
+        const pref = localStorage.getItem('sidebar_collapsed_desktop');
+        if (pref === 'true') {
+            mainScreen.classList.add('sidebar-collapsed');
+        } else {
+            mainScreen.classList.remove('sidebar-collapsed');
+        }
+    } else if (width >= 768) {
+        // Tablet Screen (768px <= width < 1200px): Default COLLAPSED
+        const pref = localStorage.getItem('sidebar_collapsed_tablet');
+        if (pref === 'false') {
+            mainScreen.classList.remove('sidebar-collapsed');
+        } else {
+            // Default to collapsed on tablet
+            mainScreen.classList.add('sidebar-collapsed');
+        }
+    } else {
+        // Mobile Screen (< 768px): Uses off-canvas drawer overlay & bottom dock
+        mainScreen.classList.remove('sidebar-collapsed');
+    }
+}
+
 function setupNavigation() {
     const menuToggle = document.getElementById('menu-toggle');
     const drawerClose = document.getElementById('drawer-close');
@@ -186,21 +212,24 @@ function setupNavigation() {
     const drawer = document.getElementById('app-drawer');
     const mainScreen = document.getElementById('main-screen');
     
-    // Initial check for desktop collapsed state
-    if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
-        if (mainScreen) mainScreen.classList.add('sidebar-collapsed');
-    }
+    // Initial check for responsive sidebar state
+    applySidebarState();
     
     const toggleSidebar = () => {
-        if (window.innerWidth >= 992) {
-            // Desktop collapse/expand
+        const width = window.innerWidth;
+        if (width >= 768) {
+            // Desktop / Tablet collapse/expand toggle
             if (mainScreen) {
                 mainScreen.classList.toggle('sidebar-collapsed');
                 const isCollapsed = mainScreen.classList.contains('sidebar-collapsed');
-                localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+                if (width >= 1200) {
+                    localStorage.setItem('sidebar_collapsed_desktop', isCollapsed ? 'true' : 'false');
+                } else {
+                    localStorage.setItem('sidebar_collapsed_tablet', isCollapsed ? 'true' : 'false');
+                }
             }
         } else {
-            // Mobile open drawer
+            // Mobile open drawer overlay
             drawer.classList.toggle('open');
             drawerOverlay.classList.toggle('active');
         }
@@ -212,14 +241,10 @@ function setupNavigation() {
     
     // Listen for window resize to handle drawer/sidebar state correctly
     window.addEventListener('resize', () => {
-        if (window.innerWidth >= 992) {
+        if (window.innerWidth >= 768) {
             closeDrawer();
-            if (localStorage.getItem('sidebar_collapsed') === 'true') {
-                if (mainScreen) mainScreen.classList.add('sidebar-collapsed');
-            }
-        } else {
-            if (mainScreen) mainScreen.classList.remove('sidebar-collapsed');
         }
+        applySidebarState();
     });
     
     // Handle logout
