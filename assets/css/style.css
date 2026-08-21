@@ -35,6 +35,8 @@
     
     --header-height: 60px;
     --dock-height: 66px;
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 68px;
     
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
     --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
@@ -326,6 +328,10 @@ button, input, select, textarea {
     color: var(--text-secondary);
 }
 
+.user-info-mini {
+    display: none;
+}
+
 .drawer-overlay {
     position: fixed;
     top: 0;
@@ -436,25 +442,120 @@ button, input, select, textarea {
     color: var(--primary-color);
 }
 
-/* Hide drawer elements on desktops to make standard layout */
+/* Desktop Layout with Collapsible Sidebar */
 @media (min-width: 992px) {
     .app-drawer {
         left: 0 !important;
         background-color: var(--card-bg) !important;
+        width: var(--sidebar-width);
+        transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .drawer-close-btn, #menu-toggle, #drawer-overlay {
+    .drawer-close-btn, #drawer-overlay {
         display: none !important;
     }
+    #menu-toggle {
+        display: flex !important;
+        cursor: pointer;
+    }
     .app-header {
-        left: 280px;
-        width: calc(100% - 280px);
+        left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+        transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .app-content {
-        margin-left: 280px;
+        margin-left: var(--sidebar-width);
         margin-bottom: env(safe-area-inset-bottom);
+        transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .mobile-bottom-dock {
         display: none !important;
+    }
+
+    /* Collapsed Sidebar State on Desktop */
+    #main-screen.sidebar-collapsed .app-drawer {
+        width: var(--sidebar-collapsed-width);
+    }
+    #main-screen.sidebar-collapsed .app-header {
+        left: var(--sidebar-collapsed-width);
+        width: calc(100% - var(--sidebar-collapsed-width));
+    }
+    #main-screen.sidebar-collapsed .app-content {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+
+    #main-screen.sidebar-collapsed .logo-text,
+    #main-screen.sidebar-collapsed .nav-text,
+    #main-screen.sidebar-collapsed .user-info-full {
+        display: none !important;
+    }
+
+    #main-screen.sidebar-collapsed .drawer-header {
+        padding: 0;
+        justify-content: center;
+    }
+
+    #main-screen.sidebar-collapsed .drawer-logo {
+        gap: 0;
+        justify-content: center;
+    }
+
+    #main-screen.sidebar-collapsed .drawer-nav {
+        padding: 20px 8px;
+    }
+
+    #main-screen.sidebar-collapsed .nav-item {
+        justify-content: center;
+        padding: 12px 0;
+        gap: 0;
+        position: relative;
+    }
+
+    #main-screen.sidebar-collapsed .nav-item i {
+        width: auto;
+        font-size: 20px;
+        margin: 0;
+    }
+
+    #main-screen.sidebar-collapsed .nav-item::after {
+        content: attr(data-title);
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%) translateX(8px);
+        background: rgba(15, 23, 42, 0.92);
+        color: #ffffff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 300;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #main-screen.sidebar-collapsed .nav-item:hover::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(-50%) translateX(12px);
+    }
+
+    #main-screen.sidebar-collapsed .drawer-footer {
+        padding: 15px 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    #main-screen.sidebar-collapsed .user-info-mini {
+        display: flex !important;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+        color: var(--primary-color);
+        cursor: pointer;
     }
 }
 

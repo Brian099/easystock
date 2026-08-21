@@ -90,7 +90,13 @@ function showLoginScreen() {
 function showMainScreen() {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('install-screen').classList.remove('active');
-    document.getElementById('main-screen').classList.add('active');
+    const mainScreen = document.getElementById('main-screen');
+    mainScreen.classList.add('active');
+    
+    // Restore sidebar collapsed preference on desktop
+    if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
+        mainScreen.classList.add('sidebar-collapsed');
+    }
     
     // Set username in side drawer
     document.getElementById('drawer-username').textContent = state.user.username;
@@ -178,29 +184,60 @@ function setupNavigation() {
     const drawerClose = document.getElementById('drawer-close');
     const drawerOverlay = document.getElementById('drawer-overlay');
     const drawer = document.getElementById('app-drawer');
+    const mainScreen = document.getElementById('main-screen');
     
-    const openDrawerFunc = () => {
-        drawer.classList.add('open');
-        drawerOverlay.classList.add('active');
+    // Initial check for desktop collapsed state
+    if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
+        if (mainScreen) mainScreen.classList.add('sidebar-collapsed');
+    }
+    
+    const toggleSidebar = () => {
+        if (window.innerWidth >= 992) {
+            // Desktop collapse/expand
+            if (mainScreen) {
+                mainScreen.classList.toggle('sidebar-collapsed');
+                const isCollapsed = mainScreen.classList.contains('sidebar-collapsed');
+                localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+            }
+        } else {
+            // Mobile open drawer
+            drawer.classList.toggle('open');
+            drawerOverlay.classList.toggle('active');
+        }
     };
     
-    menuToggle.addEventListener('click', openDrawerFunc);
-    drawerClose.addEventListener('click', closeDrawer);
-    drawerOverlay.addEventListener('click', closeDrawer);
+    if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
+    if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
+    if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
     
-    // Handle logout
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        if (confirm('确认退出系统吗？')) {
-            fetch('api/auth.php?action=logout', { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('成功退出登录');
-                        showLoginScreen();
-                    }
-                });
+    // Listen for window resize to handle drawer/sidebar state correctly
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 992) {
+            closeDrawer();
+            if (localStorage.getItem('sidebar_collapsed') === 'true') {
+                if (mainScreen) mainScreen.classList.add('sidebar-collapsed');
+            }
+        } else {
+            if (mainScreen) mainScreen.classList.remove('sidebar-collapsed');
         }
     });
+    
+    // Handle logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('确认退出系统吗？')) {
+                fetch('api/auth.php?action=logout', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('成功退出登录');
+                            showLoginScreen();
+                        }
+                    });
+            }
+        });
+    }
 }
 
 function closeDrawer() {
