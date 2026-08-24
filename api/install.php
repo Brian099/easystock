@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS `products` (
 CREATE TABLE IF NOT EXISTS `setting` (
   `id` int(11) NOT NULL DEFAULT '1' COMMENT '主键',
   `allowEditStock` varchar(10) NOT NULL DEFAULT 'false' COMMENT '是否允许直接修改库存',
+  `companyName` varchar(100) NOT NULL DEFAULT '' COMMENT '公司名称/标识',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -141,8 +142,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `idx_user_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `setting` (`id`, `allowEditStock`) VALUES (1, 'false')
-ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`);
+INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`) VALUES (1, 'false', '')
+ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`);
 ";
 
 try {
@@ -151,18 +152,24 @@ try {
     send_json(['error' => '数据库表结构初始化失败: ' . $e->getMessage()], 500);
 }
 
-// 4. Optional: Import demo/historical data if requested and stock.sql exists
+// 4. Optional: Import demo/historical data if requested and stock.sql exists in data/ or root
 $import_demo = !empty($input['import_demo']);
 if ($import_demo) {
-    $sql_path = __DIR__ . '/../stock.sql';
-    if (is_file($sql_path)) {
-        try {
-            $demo_sql = file_get_contents($sql_path);
-            if ($demo_sql) {
-                $pdo->exec($demo_sql);
+    $sql_candidates = [
+        __DIR__ . '/../data/stock.sql',
+        __DIR__ . '/../stock.sql'
+    ];
+    foreach ($sql_candidates as $cand) {
+        if (is_file($cand)) {
+            try {
+                $demo_sql = file_get_contents($cand);
+                if ($demo_sql) {
+                    $pdo->exec($demo_sql);
+                }
+                break;
+            } catch (Exception $e) {
+                // Silently continue
             }
-        } catch (Exception $e) {
-            // Silently ignore demo import errors or continue
         }
     }
 }

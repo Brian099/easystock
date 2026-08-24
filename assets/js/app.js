@@ -8,8 +8,7 @@ const state = {
     currentView: 'dashboard',
     settings: {
         allowEditStock: 'false',
-        unit: '个',
-        brand: ''
+        companyName: ''
     },
     suggestions: {
         brands: [],
@@ -277,13 +276,23 @@ function closeDrawer() {
 /* --------------------------------------------------
  * 3. Settings & Autocompletion List Suggestions
  * -------------------------------------------------- */
+function updateHeaderBranding(companyName) {
+    const titleEl = document.getElementById('header-company-name') || document.querySelector('.app-title .title-text');
+    if (titleEl) {
+        titleEl.textContent = (companyName && companyName.trim()) ? companyName.trim() : '智能库存';
+    }
+}
+
 function loadSettings() {
     fetch('api/settings.php')
         .then(res => res.json())
         .then(data => {
-            state.settings = data.settings;
-            state.suggestions = data.suggestions;
+            state.settings = data.settings || {};
+            state.suggestions = data.suggestions || {};
             
+            // Update top header title with company name
+            updateHeaderBranding(state.settings.companyName);
+
             // Populate combobox options and filters
             populateSuggestions();
             
@@ -291,9 +300,13 @@ function loadSettings() {
             const allowEdit = document.getElementById('setting-allow-edit');
             if (allowEdit) allowEdit.checked = (state.settings.allowEditStock === 'true');
             
+            const companyInput = document.getElementById('setting-company-name');
+            if (companyInput) companyInput.value = state.settings.companyName || '';
+
             // Disable controls and hide save button if user is not admin
             const isAdmin = (state.user && state.user.role === 'admin');
             if (allowEdit) allowEdit.disabled = !isAdmin;
+            if (companyInput) companyInput.disabled = !isAdmin;
             
             const saveBtn = document.querySelector('#global-settings-form button[type="submit"]');
             if (saveBtn) {
@@ -587,12 +600,14 @@ function setupForms() {
         settingsForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const allowEdit = document.getElementById('setting-allow-edit').checked ? 'true' : 'false';
+            const companyName = (document.getElementById('setting-company-name')?.value || '').trim();
             
             fetch('api/settings.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    allowEditStock: allowEdit
+                    allowEditStock: allowEdit,
+                    companyName: companyName
                 })
             })
             .then(res => {
@@ -604,6 +619,7 @@ function setupForms() {
             .then(data => {
                 if (data.success) {
                     state.settings = data.settings;
+                    updateHeaderBranding(state.settings.companyName);
                     showToast('系统设置已保存');
                     loadSettings();
                 }

@@ -7,12 +7,13 @@ if ($method === 'GET') {
     $currentUser = require_login();
     
     // 1. Get global settings config row (id = 1)
-    $stmt = $pdo->query("SELECT allowEditStock FROM setting LIMIT 1");
-    $allowEditStock = $stmt->fetchColumn();
+    $stmt = $pdo->query("SELECT allowEditStock, companyName FROM setting WHERE id = 1 LIMIT 1");
+    $row = $stmt->fetch();
     
     $setting = [
         'id' => 1,
-        'allowEditStock' => ($allowEditStock === 'true') ? 'true' : 'false'
+        'allowEditStock' => (($row['allowEditStock'] ?? 'false') === 'true') ? 'true' : 'false',
+        'companyName' => (string)($row['companyName'] ?? '')
     ];
     
     // 2. Aggregate unique brands, units, and locations directly from products table
@@ -45,26 +46,29 @@ elseif ($method === 'PUT') {
     // Update global settings
     $input = get_json_input();
     $allowEditStock = trim($input['allowEditStock'] ?? 'false');
-    
     if (!in_array($allowEditStock, ['true', 'false'])) {
         $allowEditStock = 'false';
     }
     
+    $companyName = isset($input['companyName']) ? trim(mb_substr((string)$input['companyName'], 0, 100, 'UTF-8')) : '';
+    
     try {
         // Upsert setting row with id = 1
         $stmt = $pdo->prepare("
-            INSERT INTO setting (id, allowEditStock) 
-            VALUES (1, ?)
+            INSERT INTO setting (id, allowEditStock, companyName) 
+            VALUES (1, ?, ?)
             ON DUPLICATE KEY UPDATE 
-                allowEditStock = VALUES(allowEditStock)
+                allowEditStock = VALUES(allowEditStock),
+                companyName = VALUES(companyName)
         ");
-        $stmt->execute([$allowEditStock]);
+        $stmt->execute([$allowEditStock, $companyName]);
         
         send_json([
             'success' => true,
             'settings' => [
                 'id' => 1,
-                'allowEditStock' => $allowEditStock
+                'allowEditStock' => $allowEditStock,
+                'companyName' => $companyName
             ]
         ]);
     } catch (Exception $e) {
@@ -75,4 +79,5 @@ elseif ($method === 'PUT') {
 else {
     send_json(['error' => 'HTTP Method not allowed.'], 405);
 }
+
 

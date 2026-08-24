@@ -7,7 +7,7 @@
     <!-- Local FontAwesome Icons -->
     <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="assets/css/style.css?v=2.4">
+    <link rel="stylesheet" href="assets/css/style.css?v=2.5">
 </head>
 <body>
 
@@ -88,7 +88,7 @@
             <header class="app-header glass">
                 <button id="menu-toggle" class="header-btn" title="折叠/展开侧边栏"><i class="fa-solid fa-bars"></i></button>
                 <div class="app-title">
-                    <span class="title-text">智能库存</span>
+                    <span class="title-text" id="header-company-name">智能库存</span>
                 </div>
                 <div class="user-status-area">
                     <span id="header-user-role" class="badge">管理员</span>
@@ -267,10 +267,15 @@
                     </div>
 
                     <div class="settings-sections">
-                        <!-- Global Config -->
+                        <!-- Global Config & Company Branding -->
                         <div class="settings-card glass">
-                            <h3><i class="fa-solid fa-screwdriver-wrench"></i> 系统业务规则设置</h3>
+                            <h3><i class="fa-solid fa-screwdriver-wrench"></i> 系统设置与公司标识</h3>
                             <form id="global-settings-form">
+                                <div class="input-group" style="margin-bottom: 16px;">
+                                    <label for="setting-company-name"><i class="fa-solid fa-building"></i> 公司标识 / 名称</label>
+                                    <input type="text" id="setting-company-name" placeholder="请输入公司名称（如：XX智能科技有限公司）" maxlength="50">
+                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">设置后将显示在前台顶部顶栏，代替原来默认的“智能库存”；若留空则恢复默认名称。</small>
+                                </div>
                                 <div class="toggle-group" style="margin-bottom: 15px;">
                                     <div class="toggle-label-desc">
                                         <label for="setting-allow-edit">允许直接修改库存</label>
@@ -655,6 +660,6 @@
     </div>
 
     <!-- Application Script -->
-    <script src="assets/js/app.js?v=2.4"></script>
+    <script src="assets/js/app.js?v=2.5"></script>
 </body>
 </html>
