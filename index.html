@@ -22,22 +22,43 @@
                     <p>配置数据库连接及管理员账户</p>
                 </div>
                 <form id="install-form">
-                    <div class="input-group">
-                        <label for="install-db-host"><i class="fa-solid fa-server"></i> 数据库主机</label>
-                        <input type="text" id="install-db-host" required value="127.0.0.1">
+                    <!-- Database Type Selector -->
+                    <div class="input-group" style="margin-bottom: 16px;">
+                        <label><i class="fa-solid fa-database"></i> 选择数据库类型</label>
+                        <div class="segment-control db-type-selector">
+                            <input type="radio" name="install-db-type" id="db-type-sqlite" value="sqlite" checked>
+                            <label for="db-type-sqlite" class="segment-label"><i class="fa-solid fa-file-shield"></i> SQLite (免配置/本地文件)</label>
+                            
+                            <input type="radio" name="install-db-type" id="db-type-mysql" value="mysql">
+                            <label for="db-type-mysql" class="segment-label"><i class="fa-solid fa-server"></i> MySQL / MariaDB</label>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label for="install-db-name"><i class="fa-solid fa-database"></i> 数据库名</label>
-                        <input type="text" id="install-db-name" required value="stock">
+
+                    <!-- SQLite Info Box -->
+                    <div id="install-sqlite-box" style="padding: 12px 14px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: var(--border-radius-sm); margin-bottom: 16px; font-size: 13px; line-height: 1.6;">
+                        <p style="margin: 0; color: var(--text-primary);"><i class="fa-solid fa-circle-check" style="color: var(--primary-color);"></i> <strong>零配置快速启动</strong>：系统将自动在 <code>data/stock.db</code> 创建并维护数据库，适合单机、群晖 NAS 或极简部署。</p>
                     </div>
-                    <div class="input-group">
-                        <label for="install-db-user"><i class="fa-solid fa-user-lock"></i> 数据库用户名</label>
-                        <input type="text" id="install-db-user" required value="root">
+
+                    <!-- MySQL Config Fields -->
+                    <div id="install-mysql-fields" class="hidden">
+                        <div class="input-group">
+                            <label for="install-db-host"><i class="fa-solid fa-network-wired"></i> 数据库主机</label>
+                            <input type="text" id="install-db-host" value="127.0.0.1">
+                        </div>
+                        <div class="input-group">
+                            <label for="install-db-name"><i class="fa-solid fa-database"></i> 数据库名</label>
+                            <input type="text" id="install-db-name" value="stock">
+                        </div>
+                        <div class="input-group">
+                            <label for="install-db-user"><i class="fa-solid fa-user-lock"></i> 数据库用户名</label>
+                            <input type="text" id="install-db-user" value="root">
+                        </div>
+                        <div class="input-group">
+                            <label for="install-db-pass"><i class="fa-solid fa-key"></i> 数据库密码</label>
+                            <input type="password" id="install-db-pass" placeholder="留空或输入数据库密码">
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label for="install-db-pass"><i class="fa-solid fa-key"></i> 数据库密码</label>
-                        <input type="password" id="install-db-pass" placeholder="留空或输入数据库密码">
-                    </div>
+
                     <hr class="form-divider" style="margin: 15px 0; border: none; border-top: 1px dashed var(--border-color);">
                     <div class="input-group">
                         <label for="install-admin-user"><i class="fa-solid fa-user-gear"></i> 管理员用户名</label>
@@ -47,14 +68,14 @@
                         <label for="install-admin-pass"><i class="fa-solid fa-lock"></i> 管理员密码</label>
                         <input type="password" id="install-admin-pass" required placeholder="至少 6 位，用于登录系统">
                     </div>
-                    <div class="input-group" style="margin-top: 5px; margin-bottom: 15px;">
+                    <div class="input-group" id="install-demo-group" style="margin-top: 5px; margin-bottom: 15px;">
                         <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
                             <input type="checkbox" id="install-import-demo"> 导入预置演示/历史商品数据 (可选)
                         </label>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block" id="install-submit-btn">开始安装并初始化 <i class="fa-solid fa-check"></i></button>
                     <div id="install-error" class="alert alert-danger hidden"></div>
-                    <div id="install-loading" class="loading-spinner hidden" style="padding: 10px 0;"><i class="fa-solid fa-spinner fa-spin"></i> 正在初始化并导入数据...</div>
+                    <div id="install-loading" class="loading-spinner hidden" style="padding: 10px 0;"><i class="fa-solid fa-spinner fa-spin"></i> 正在初始化数据库...</div>
                 </form>
             </div>
         </div>

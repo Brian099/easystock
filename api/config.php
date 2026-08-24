@@ -30,7 +30,30 @@ if (!file_exists($config_file)) {
 
 // Establish database connection if configuration is available
 $pdo = null;
-if (defined('DB_HOST')) {
+$db_type = defined('DB_TYPE') ? strtolower(DB_TYPE) : (defined('DB_HOST') ? 'mysql' : '');
+
+if ($db_type === 'sqlite') {
+    try {
+        $db_path = defined('DB_PATH') ? DB_PATH : (__DIR__ . '/../data/stock.db');
+        $pdo = new PDO(
+            "sqlite:" . $db_path,
+            null,
+            null,
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]
+        );
+        // Enable WAL mode and foreign key constraints for SQLite
+        $pdo->exec("PRAGMA foreign_keys = ON;");
+        $pdo->exec("PRAGMA journal_mode = WAL;");
+    } catch (PDOException $e) {
+        if (!$is_installing) {
+            send_json(['error' => 'SQLite Database connection failed: ' . $e->getMessage()], 500);
+        }
+    }
+} elseif ($db_type === 'mysql' && defined('DB_HOST')) {
     try {
         $pdo = new PDO(
             "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
@@ -44,7 +67,7 @@ if (defined('DB_HOST')) {
         );
     } catch (PDOException $e) {
         if (!$is_installing) {
-            send_json(['error' => 'Database connection failed: ' . $e->getMessage()], 500);
+            send_json(['error' => 'MySQL Database connection failed: ' . $e->getMessage()], 500);
         }
     }
 }

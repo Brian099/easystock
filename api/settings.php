@@ -53,15 +53,15 @@ elseif ($method === 'PUT') {
     $companyName = isset($input['companyName']) ? trim(mb_substr((string)$input['companyName'], 0, 100, 'UTF-8')) : '';
     
     try {
-        // Upsert setting row with id = 1
-        $stmt = $pdo->prepare("
-            INSERT INTO setting (id, allowEditStock, companyName) 
-            VALUES (1, ?, ?)
-            ON DUPLICATE KEY UPDATE 
-                allowEditStock = VALUES(allowEditStock),
-                companyName = VALUES(companyName)
-        ");
+        // Standard SQL update/insert compatible with both SQLite and MySQL
+        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ? WHERE id = 1");
         $stmt->execute([$allowEditStock, $companyName]);
+        
+        $chk = $pdo->query("SELECT id FROM setting WHERE id = 1");
+        if (!$chk->fetch()) {
+            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName) VALUES (1, ?, ?)");
+            $ins->execute([$allowEditStock, $companyName]);
+        }
         
         send_json([
             'success' => true,

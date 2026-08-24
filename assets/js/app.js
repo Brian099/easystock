@@ -65,16 +65,46 @@ function showInstallScreen() {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('install-screen').classList.add('active');
     
+    // Bind database type switcher radio change
+    const sqliteRadio = document.getElementById('db-type-sqlite');
+    const mysqlRadio = document.getElementById('db-type-mysql');
+    const sqliteBox = document.getElementById('install-sqlite-box');
+    const mysqlFields = document.getElementById('install-mysql-fields');
+    
+    function updateDbTypeUI() {
+        const isMysql = mysqlRadio && mysqlRadio.checked;
+        if (sqliteBox) sqliteBox.style.display = isMysql ? 'none' : 'block';
+        if (mysqlFields) {
+            if (isMysql) {
+                mysqlFields.classList.remove('hidden');
+            } else {
+                mysqlFields.classList.add('hidden');
+            }
+        }
+    }
+    
+    if (sqliteRadio && mysqlRadio) {
+        sqliteRadio.onchange = updateDbTypeUI;
+        mysqlRadio.onchange = updateDbTypeUI;
+    }
+    
     // Fetch env/prefill configurations
     fetch('api/install.php')
         .then(res => res.json())
         .then(data => {
             if (data.prefill) {
-                document.getElementById('install-db-host').value = data.prefill.db_host;
-                document.getElementById('install-db-name').value = data.prefill.db_name;
-                document.getElementById('install-db-user').value = data.prefill.db_user;
-                document.getElementById('install-db-pass').value = data.prefill.db_pass;
-                document.getElementById('install-admin-user').value = data.prefill.admin_user;
+                if (data.prefill.db_type === 'mysql' && mysqlRadio) {
+                    mysqlRadio.checked = true;
+                } else if (sqliteRadio) {
+                    sqliteRadio.checked = true;
+                }
+                updateDbTypeUI();
+
+                if (document.getElementById('install-db-host')) document.getElementById('install-db-host').value = data.prefill.db_host || '127.0.0.1';
+                if (document.getElementById('install-db-name')) document.getElementById('install-db-name').value = data.prefill.db_name || 'stock';
+                if (document.getElementById('install-db-user')) document.getElementById('install-db-user').value = data.prefill.db_user || 'root';
+                if (document.getElementById('install-db-pass')) document.getElementById('install-db-pass').value = data.prefill.db_pass || '';
+                if (document.getElementById('install-admin-user')) document.getElementById('install-admin-user').value = data.prefill.admin_user || 'admin';
             }
         });
 }
@@ -429,15 +459,20 @@ function setupForms() {
             loadingDiv.classList.remove('hidden');
             submitBtn.disabled = true;
             
+            const dbType = document.querySelector('input[name="install-db-type"]:checked')?.value || 'sqlite';
             const payload = {
-                db_host: document.getElementById('install-db-host').value,
-                db_name: document.getElementById('install-db-name').value,
-                db_user: document.getElementById('install-db-user').value,
-                db_pass: document.getElementById('install-db-pass').value,
+                db_type: dbType,
                 admin_user: document.getElementById('install-admin-user').value,
                 admin_pass: document.getElementById('install-admin-pass').value,
                 import_demo: document.getElementById('install-import-demo')?.checked || false
             };
+
+            if (dbType === 'mysql') {
+                payload.db_host = document.getElementById('install-db-host')?.value || '127.0.0.1';
+                payload.db_name = document.getElementById('install-db-name')?.value || 'stock';
+                payload.db_user = document.getElementById('install-db-user')?.value || 'root';
+                payload.db_pass = document.getElementById('install-db-pass')?.value || '';
+            }
             
             fetch('api/install.php', {
                 method: 'POST',

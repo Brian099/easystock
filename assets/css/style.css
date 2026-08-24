@@ -1638,6 +1638,7 @@ input:checked + .slider:before {
 
 .segment-control input:checked + .segment-label {
     color: #fff;
+    background-color: var(--primary-color);
 }
 
 .segment-control input:checked + .segment-label.segment-in { background-color: var(--success-color); }
