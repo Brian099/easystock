@@ -795,6 +795,110 @@ button, input, select, textarea {
     gap: 10px;
 }
 
+/* --------------------------------------------------
+ * Search Source Chips (Field Filters)
+ * -------------------------------------------------- */
+.search-source-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding-bottom: 2px;
+}
+
+.search-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    transition: all 0.18s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.search-chip:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
+    transform: translateY(-1px);
+}
+
+.search-chip:active {
+    transform: scale(0.97);
+}
+
+/* Active State (Checked, Blue Icon) */
+.search-chip.active {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #1e293b;
+}
+
+.search-chip.active .chip-icon {
+    color: #2563eb;
+    font-size: 14px;
+}
+
+/* Disabled State (Minus, Red Icon, Dimmed Text) */
+.search-chip.disabled {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+}
+
+.search-chip.disabled .chip-icon {
+    color: #ef4444;
+    font-size: 14px;
+}
+
+/* --------------------------------------------------
+ * Settings: Default Search Fields Checkboxes
+ * -------------------------------------------------- */
+.settings-search-fields-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-top: 4px;
+}
+
+.custom-setting-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.custom-setting-checkbox:hover {
+    border-color: var(--primary-color);
+    background: #ffffff;
+}
+
+.custom-setting-checkbox input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.custom-setting-checkbox .chk-label {
+    font-weight: 500;
+}
+
 .search-input-wrapper {
     position: relative;
     display: flex;

@@ -112,7 +112,8 @@ if ($db_type === 'sqlite') {
     CREATE TABLE IF NOT EXISTS `setting` (
       `id` INTEGER PRIMARY KEY DEFAULT 1,
       `allowEditStock` TEXT NOT NULL DEFAULT 'false',
-      `companyName` TEXT NOT NULL DEFAULT ''
+      `companyName` TEXT NOT NULL DEFAULT '',
+      `defaultSearchFields` TEXT NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark'
     );
 
     CREATE TABLE IF NOT EXISTS `stock_log` (
@@ -145,7 +146,7 @@ if ($db_type === 'sqlite') {
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`) VALUES (1, 'false', '');
+    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark');
     ";
 
 } else {
@@ -210,6 +211,7 @@ if ($db_type === 'sqlite') {
       `id` int(11) NOT NULL DEFAULT '1' COMMENT '主键',
       `allowEditStock` varchar(10) NOT NULL DEFAULT 'false' COMMENT '是否允许直接修改库存',
       `companyName` varchar(100) NOT NULL DEFAULT '' COMMENT '公司名称/标识',
+      `defaultSearchFields` varchar(255) NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark' COMMENT '默认搜索来源字段',
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -247,8 +249,8 @@ if ($db_type === 'sqlite') {
       UNIQUE KEY `idx_user_username` (`username`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`) VALUES (1, 'false', '')
-    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`);
+    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark')
+    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`);
     ";
 }
 

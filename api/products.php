@@ -59,9 +59,40 @@ if ($method === 'GET') {
         $params = [];
         
         if ($search !== '') {
-            $where_clauses[] = "(name LIKE ? OR model LIKE ? OR barcode LIKE ? OR spec LIKE ? OR brand LIKE ? OR local LIKE ?)";
+            $all_supported_fields = [
+                'name'    => ['name'],
+                'model'   => ['model'],
+                'spec'    => ['spec'],
+                'barcode' => ['barcode'],
+                'brand'   => ['brand'],
+                'local'   => ['local'],
+                'mark'    => ['mark']
+            ];
+            
+            if (isset($_GET['search_fields'])) {
+                $raw_fields = trim($_GET['search_fields']);
+                $fields_list = $raw_fields !== '' ? array_filter(array_map('trim', explode(',', $raw_fields))) : [];
+            } else {
+                $fields_list = array_keys($all_supported_fields);
+            }
+            
+            $search_conditions = [];
             $search_param = "%$search%";
-            $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param, $search_param, $search_param]);
+            
+            foreach ($fields_list as $f) {
+                if (isset($all_supported_fields[$f])) {
+                    foreach ($all_supported_fields[$f] as $col) {
+                        $search_conditions[] = "$col LIKE ?";
+                        $params[] = $search_param;
+                    }
+                }
+            }
+            
+            if (!empty($search_conditions)) {
+                $where_clauses[] = "(" . implode(' OR ', $search_conditions) . ")";
+            } else {
+                $where_clauses[] = "1 = 0";
+            }
         }
         
         if ($brand !== '') {

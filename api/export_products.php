@@ -13,10 +13,41 @@ $low_stock = isset($_GET['low_stock']) && $_GET['low_stock'] === '1';
 $conditions = [];
 $params = [];
 
-if ($search) {
-    $conditions[] = "(name LIKE ? OR model LIKE ? OR barcode LIKE ? OR spec LIKE ? OR mark LIKE ?)";
+if ($search !== '') {
+    $all_supported_fields = [
+        'name'    => ['name'],
+        'model'   => ['model'],
+        'spec'    => ['spec'],
+        'barcode' => ['barcode'],
+        'brand'   => ['brand'],
+        'local'   => ['local'],
+        'mark'    => ['mark']
+    ];
+    
+    if (isset($_GET['search_fields'])) {
+        $raw_fields = trim($_GET['search_fields']);
+        $fields_list = $raw_fields !== '' ? array_filter(array_map('trim', explode(',', $raw_fields))) : [];
+    } else {
+        $fields_list = array_keys($all_supported_fields);
+    }
+    
+    $search_conditions = [];
     $term = "%{$search}%";
-    $params = array_merge($params, [$term, $term, $term, $term, $term]);
+    
+    foreach ($fields_list as $f) {
+        if (isset($all_supported_fields[$f])) {
+            foreach ($all_supported_fields[$f] as $col) {
+                $search_conditions[] = "$col LIKE ?";
+                $params[] = $term;
+            }
+        }
+    }
+    
+    if (!empty($search_conditions)) {
+        $conditions[] = "(" . implode(' OR ', $search_conditions) . ")";
+    } else {
+        $conditions[] = "1 = 0";
+    }
 }
 
 if ($brand) {

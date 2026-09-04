@@ -223,9 +223,41 @@
 
                     <!-- Search and Filters Bar -->
                     <div class="search-filter-bar glass">
+                        <!-- Search Source Chips (Field Selectors) -->
+                        <div class="search-source-chips" id="search-source-chips" aria-label="搜索字段筛选">
+                            <button type="button" class="search-chip active" data-field="name" title="点击切换：商品名称">
+                                <span class="chip-label">商品名称</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                            <button type="button" class="search-chip active" data-field="model" title="点击切换：型号">
+                                <span class="chip-label">型号</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                            <button type="button" class="search-chip active" data-field="spec" title="点击切换：规格">
+                                <span class="chip-label">规格</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                            <button type="button" class="search-chip active" data-field="barcode" title="点击切换：商品编码">
+                                <span class="chip-label">商品编码</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                            <button type="button" class="search-chip active" data-field="brand" title="点击切换：品牌">
+                                <span class="chip-label">品牌</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                            <button type="button" class="search-chip active" data-field="local" title="点击切换：仓位">
+                                <span class="chip-label">仓位</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                            <button type="button" class="search-chip active" data-field="mark" title="点击切换：备注">
+                                <span class="chip-label">备注</span>
+                                <i class="fa-regular fa-circle-check chip-icon"></i>
+                            </button>
+                        </div>
+
                         <div class="search-input-wrapper">
                             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                            <input type="text" id="product-search-input" placeholder="输入名称、型号、编码、仓位...">
+                            <input type="text" id="product-search-input" placeholder="输入关键字检索商品...">
                             <button id="barcode-scan-shortcut" class="barcode-shortcut-btn" title="扫码"><i class="fa-solid fa-camera"></i></button>
                         </div>
                         
@@ -307,6 +339,42 @@
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
+
+                                <div class="input-group" style="margin-bottom: 18px;">
+                                    <label><i class="fa-solid fa-filter"></i> 默认搜索内容来源设置</label>
+                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 2px; margin-bottom: 8px; display: block;">配置商品管理进入系统时默认启用的检索字段范围：</small>
+                                    <div class="settings-search-fields-grid" id="setting-search-fields-list">
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="name" checked>
+                                            <span class="chk-label">商品名称</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="model" checked>
+                                            <span class="chk-label">型号</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="spec" checked>
+                                            <span class="chk-label">规格</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="barcode" checked>
+                                            <span class="chk-label">商品编码</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="brand" checked>
+                                            <span class="chk-label">品牌</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="local" checked>
+                                            <span class="chk-label">仓位</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="default-search-fields" value="mark" checked>
+                                            <span class="chk-label">备注</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div style="font-size: 12px; color: var(--text-light); line-height: 1.6; padding: 10px 12px; background: var(--bg-color); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px;">
                                     <i class="fa-solid fa-circle-info"></i> <strong>提示</strong>：商品单位、厂商/品牌和仓位候选项由系统<strong>自动从商品库中实时提取</strong>，录入商品时可直接选择或任意输入新名称。
                                 </div>

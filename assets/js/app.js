@@ -8,8 +8,11 @@ const state = {
     currentView: 'dashboard',
     settings: {
         allowEditStock: 'false',
-        companyName: ''
+        companyName: '',
+        defaultSearchFields: 'name,model,spec,barcode,brand,local,mark'
     },
+    activeSearchFields: ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'],
+    searchFieldsModifiedByUser: false,
     suggestions: {
         brands: [],
         units: [],
@@ -333,10 +336,24 @@ function loadSettings() {
             const companyInput = document.getElementById('setting-company-name');
             if (companyInput) companyInput.value = state.settings.companyName || '';
 
+            // Apply default search fields checkboxes in Settings view
+            applySettingsSearchFieldsUI(state.settings.defaultSearchFields);
+
+            // If user hasn't explicitly toggled search chips in this session, sync activeSearchFields with default
+            if (!state.searchFieldsModifiedByUser) {
+                const defaultFieldsStr = state.settings.defaultSearchFields || 'name,model,spec,barcode,brand,local,mark';
+                state.activeSearchFields = defaultFieldsStr.split(',').map(s => s.trim()).filter(Boolean);
+                updateSearchChipsUI();
+            }
+
             // Disable controls and hide save button if user is not admin
             const isAdmin = (state.user && state.user.role === 'admin');
             if (allowEdit) allowEdit.disabled = !isAdmin;
             if (companyInput) companyInput.disabled = !isAdmin;
+            
+            document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]').forEach(chk => {
+                chk.disabled = !isAdmin;
+            });
             
             const saveBtn = document.querySelector('#global-settings-form button[type="submit"]');
             if (saveBtn) {
@@ -347,6 +364,40 @@ function loadSettings() {
                 }
             }
         });
+}
+
+function applySettingsSearchFieldsUI(defaultFieldsStr) {
+    const fields = (defaultFieldsStr || 'name,model,spec,barcode,brand,local,mark')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    const checkboxes = document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]');
+    checkboxes.forEach(cb => {
+        cb.checked = fields.includes(cb.value);
+    });
+}
+
+function updateSearchChipsUI() {
+    const chips = document.querySelectorAll('#search-source-chips .search-chip');
+    chips.forEach(chip => {
+        const field = chip.getAttribute('data-field');
+        const isActive = state.activeSearchFields.includes(field);
+        const icon = chip.querySelector('.chip-icon');
+        
+        if (isActive) {
+            chip.classList.add('active');
+            chip.classList.remove('disabled');
+            if (icon) {
+                icon.className = 'fa-regular fa-circle-check chip-icon';
+            }
+        } else {
+            chip.classList.remove('active');
+            chip.classList.add('disabled');
+            if (icon) {
+                icon.className = 'fa-solid fa-circle-minus chip-icon';
+            }
+        }
+    });
 }
 
 function populateSuggestions() {
@@ -637,12 +688,20 @@ function setupForms() {
             const allowEdit = document.getElementById('setting-allow-edit').checked ? 'true' : 'false';
             const companyName = (document.getElementById('setting-company-name')?.value || '').trim();
             
+            // Gather selected default search fields
+            const selectedFields = [];
+            document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]:checked').forEach(cb => {
+                selectedFields.push(cb.value);
+            });
+            const defaultSearchFields = selectedFields.join(',');
+
             fetch('api/settings.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     allowEditStock: allowEdit,
-                    companyName: companyName
+                    companyName: companyName,
+                    defaultSearchFields: defaultSearchFields
                 })
             })
             .then(res => {
@@ -835,8 +894,9 @@ function loadProductsList() {
     const brand = document.getElementById('product-filter-brand').value;
     const local = document.getElementById('product-filter-local').value;
     const page = state.productsPagination.page;
+    const searchFieldsParam = (state.activeSearchFields || []).join(',');
     
-    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}`;
+    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}`;
     
     // Check if we reached this via low-stock warning card
     if (state.filterLowStockOnly) {
@@ -1545,6 +1605,32 @@ function setupSearchFilters() {
         });
     }
     
+    // Search Source Chips: Toggle fields and automatically trigger search
+    const chipsContainer = document.getElementById('search-source-chips');
+    if (chipsContainer) {
+        chipsContainer.addEventListener('click', (e) => {
+            const chip = e.target.closest('.search-chip');
+            if (!chip) return;
+            const field = chip.getAttribute('data-field');
+            if (!field) return;
+
+            state.searchFieldsModifiedByUser = true;
+            const idx = state.activeSearchFields.indexOf(field);
+            if (idx > -1) {
+                state.activeSearchFields.splice(idx, 1);
+            } else {
+                state.activeSearchFields.push(field);
+            }
+
+            // Immediately update visual UI state
+            updateSearchChipsUI();
+
+            // Automatically trigger a search immediately on state change
+            state.productsPagination.page = 1;
+            loadProductsList();
+        });
+    }
+
     // Search input typing debounce
     let searchTimeout;
     const searchInput = document.getElementById('product-search-input');
@@ -1696,12 +1782,14 @@ function setupModals() {
             const brand = document.getElementById('product-filter-brand')?.value || '';
             const local = document.getElementById('product-filter-local')?.value || '';
             const lowStock = state.filterLowStockOnly ? '1' : '0';
+            const searchFieldsParam = (state.activeSearchFields || []).join(',');
 
             const params = new URLSearchParams();
             if (search) params.append('search', search);
             if (brand) params.append('brand', brand);
             if (local) params.append('local', local);
             if (lowStock === '1') params.append('low_stock', '1');
+            if (searchFieldsParam) params.append('search_fields', searchFieldsParam);
 
             const url = `api/export_products.php?${params.toString()}`;
             showToast('正在导出商品数据表格...');
