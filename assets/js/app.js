@@ -1963,37 +1963,151 @@ function setupModals() {
     const cameraTrigger = document.getElementById('camera-upload-trigger-area');
     const cameraInput = document.getElementById('camera-file-input');
     
-    const uploadFunc = (inputEl) => {
+    // Normalizes image to standard sRGB SDR and strips HDR Gain Maps (Apple HDR / Ultra HDR)
+    async function compressAndNormalizeImage(file, maxDimension = 1600, quality = 0.82) {
+        if (!file || !file.type.startsWith('image/')) {
+            return file;
+        }
+
+        // 1. Try modern createImageBitmap first (hardware accelerated, auto EXIF orientation, strips gain maps)
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file);
+                let width = bitmap.width;
+                let height = bitmap.height;
+
+                if (width && height) {
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(bitmap, 0, 0, width, height);
+                        if (typeof bitmap.close === 'function') bitmap.close();
+                        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+                        if (blob) return blob;
+                    }
+                }
+            } catch (e) {
+                console.warn('createImageBitmap failed, falling back to Image():', e);
+            }
+        }
+
+        // 2. Fallback to HTMLImageElement using naturalWidth/naturalHeight
+        return new Promise((resolve) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                try {
+                    let width = img.naturalWidth || img.width;
+                    let height = img.naturalHeight || img.height;
+                    if (!width || !height) {
+                        resolve(file);
+                        return;
+                    }
+
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(file);
+                        return;
+                    }
+
+                    // Drawing onto canvas strips HDR Gain Map metadata and normalizes colors to SDR sRGB
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        resolve(blob || file);
+                    }, 'image/jpeg', quality);
+                } catch (e) {
+                    console.warn('Image normalization failed, fallback to original:', e);
+                    resolve(file);
+                }
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                resolve(file);
+            };
+
+            img.src = url;
+        });
+    }
+
+    let isUploadingImage = false;
+
+    const uploadFunc = async (inputEl) => {
+        if (isUploadingImage) return;
+
         const prodId = document.getElementById('prod-id').value;
         if (!prodId) {
             showToast('请先保存商品，然后再上传关联图片');
             return;
         }
         
-        if (inputEl.files.length === 0) return;
+        if (!inputEl.files || inputEl.files.length === 0) return;
+        const file = inputEl.files[0];
+
+        isUploadingImage = true;
+        showToast('正在处理并上传图片...');
         
-        const formData = new FormData();
-        formData.append('product_id', prodId);
-        formData.append('image', inputEl.files[0]);
-        
-        fetch('api/products.php?action=upload_image', {
-            method: 'POST',
-            body: formData
-        })
-        .then(res => {
+        try {
+            // Compress and normalize to SDR to prevent mobile screen brightness flicker
+            const processedBlob = await compressAndNormalizeImage(file, 1600, 0.85);
+
+            const formData = new FormData();
+            formData.append('product_id', prodId);
+            const originalName = file.name || 'photo';
+            const baseName = originalName.replace(/\.[^/.]+$/, "");
+            formData.append('image', processedBlob, `${baseName}.jpg`);
+            
+            const res = await fetch('api/products.php?action=upload_image', {
+                method: 'POST',
+                body: formData
+            });
+
             if (!res.ok) {
-                return res.json().then(err => { throw new Error(err.error); });
+                const err = await res.json().catch(() => ({ error: '上传图片失败' }));
+                throw new Error(err.error || '上传图片失败');
             }
-            return res.json();
-        })
-        .then(data => {
+
+            const data = await res.json();
             if (data.success) {
                 showToast('图片上传成功');
                 loadProductImages(prodId);
                 inputEl.value = ''; // clear input
+            } else {
+                throw new Error(data.error || '上传图片失败');
             }
-        })
-        .catch(err => showToast(err.message));
+        } catch (err) {
+            showToast(err.message || '上传图片失败');
+        } finally {
+            isUploadingImage = false;
+        }
     };
     
     if (trigger && fileInput) {

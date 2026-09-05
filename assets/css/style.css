@@ -1976,6 +1976,16 @@ input:checked + .slider:before {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    dynamic-range-limit: standard;
+}
+
+/* Prevent HDR metadata from triggering mobile display backlight brightness jump/flicker */
+.image-preview-item img,
+.detail-images-list img,
+.viewer-content img,
+.table-thumb,
+.product-thumbnail {
+    dynamic-range-limit: standard;
 }
 
 .image-preview-item .del-img-btn {
