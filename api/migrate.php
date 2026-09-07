@@ -26,7 +26,8 @@ $results = [
 /**
  * Helper to record step result
  */
-function record_step(&$results, $name, $status, $message = '') {
+function record_step(&$results, $name, $status, $message = '')
+{
     $results['migrations'][] = [
         'step' => $name,
         'status' => $status,
@@ -52,17 +53,17 @@ try {
         record_step($results, 'setting.defaultSearchFields', 'already_exists', '字段 defaultSearchFields 已存在，无需重复添加');
     } else {
         $default_val = 'name,model,spec,barcode,brand,local,mark';
-        
+
         if ($db_type === 'mysql') {
             $sql = "ALTER TABLE `setting` ADD COLUMN `defaultSearchFields` VARCHAR(255) NOT NULL DEFAULT '$default_val' COMMENT '默认搜索来源字段'";
         } else {
             $sql = "ALTER TABLE `setting` ADD COLUMN `defaultSearchFields` TEXT NOT NULL DEFAULT '$default_val'";
         }
-        
+
         $pdo->exec($sql);
         // Ensure existing rows have the default value
         $pdo->exec("UPDATE `setting` SET `defaultSearchFields` = '$default_val' WHERE `defaultSearchFields` IS NULL OR `defaultSearchFields` = ''");
-        
+
         record_step($results, 'setting.defaultSearchFields', 'success', '成功为 setting 表新增 defaultSearchFields 字段');
     }
 } catch (Throwable $e) {

@@ -48,6 +48,9 @@ if ($method === 'GET') {
         $product_id = (int)($_GET['product_id'] ?? 0);
         $search = trim($_GET['search'] ?? '');
         
+        $start_date = trim($_GET['start_date'] ?? '');
+        $end_date = trim($_GET['end_date'] ?? '');
+        
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = max(1, min(100, (int)($_GET['limit'] ?? 30)));
         $offset = ($page - 1) * $limit;
@@ -55,9 +58,25 @@ if ($method === 'GET') {
         $where_clauses = [];
         $params = [];
         
-        if ($type !== '') {
+        if ($type === 'audit_in') {
+            $where_clauses[] = "((l.type IS NULL OR l.type = '') AND l.quantity > 0)";
+        } elseif ($type === 'audit_out') {
+            $where_clauses[] = "(((l.type IS NULL OR l.type = '') AND l.quantity < 0) OR (l.type = 'in' AND l.quantity < 0))";
+        } elseif ($type === 'in') {
+            $where_clauses[] = "(l.type = 'in' AND l.quantity > 0)";
+        } elseif ($type !== '') {
             $where_clauses[] = "l.type = ?";
             $params[] = $type;
+        }
+        
+        if ($start_date !== '') {
+            $where_clauses[] = "DATE(l.created_at) >= ?";
+            $params[] = $start_date;
+        }
+        
+        if ($end_date !== '') {
+            $where_clauses[] = "DATE(l.created_at) <= ?";
+            $params[] = $end_date;
         }
         
         if ($product_id > 0) {
@@ -123,7 +142,7 @@ elseif ($method === 'POST') {
         }
         
         if (!in_array($type, ['in', 'out', 're'])) {
-            send_json(['error' => 'Invalid operation type. Must be: in, out, or re.'], 400);
+            send_json(['error' => 'Invalid operation type.'], 400);
         }
         
         if ($quantity <= 0) {

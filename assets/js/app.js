@@ -34,6 +34,7 @@ function initApp() {
     setupForms();
     setupModals();
     setupSearchFilters();
+    setupViewerEvents();
 }
 
 /* --------------------------------------------------
@@ -607,14 +608,9 @@ function setupForms() {
             mark: document.getElementById('prod-mark').value
         };
         
-        if (!prodId) {
-            // Include initial stock only on creation
-            payload.stock = document.getElementById('prod-stock').value;
-        } else {
-            // Update mode includes stock only if allowEditStock settings is true
-            if (state.settings.allowEditStock === 'true') {
-                payload.stock = document.getElementById('prod-stock').value;
-            }
+        const stockVal = document.getElementById('prod-stock').value;
+        if (stockVal !== '') {
+            payload.stock = stockVal;
         }
         
         const url = prodId ? `api/products.php?id=${prodId}` : 'api/products.php';
@@ -818,6 +814,107 @@ function setupForms() {
 /* --------------------------------------------------
  * 5. Dashboard Data Loading
  * -------------------------------------------------- */
+function getLogTypeMeta(type, rawQuantity, mark = '') {
+    const qty = parseInt(rawQuantity, 10) || 0;
+    const absQty = Math.abs(qty);
+    const markStr = String(mark || '');
+    const typeStr = String(type || '').trim();
+
+    // 1. Empty type '' or direct stock edit operation
+    if (typeStr === '' || markStr.includes('盘盈') || markStr.includes('盘亏')) {
+        if (qty > 0) {
+            return {
+                typeClass: 'log-audit_in',
+                typeStr: '盘盈',
+                tagClass: 'audit_in',
+                iconClass: 'fa-square-plus',
+                badgeClass: 'badge-audit-in',
+                signedStr: `+${absQty}`,
+                qtyClass: 'qty-plus',
+                qtyColor: '#0891b2'
+            };
+        } else {
+            return {
+                typeClass: 'log-audit_out',
+                typeStr: '盘亏',
+                tagClass: 'audit_out',
+                iconClass: 'fa-square-minus',
+                badgeClass: 'badge-audit-out',
+                signedStr: `-${absQty}`,
+                qtyClass: 'qty-minus',
+                qtyColor: '#ea580c'
+            };
+        }
+    }
+
+    // 2. Out-bound (Sales / Out)
+    if (typeStr === 'out') {
+        return {
+            typeClass: 'log-out',
+            typeStr: '出库',
+            tagClass: 'out',
+            iconClass: 'fa-circle-arrow-up',
+            badgeClass: 'badge-out',
+            signedStr: `-${absQty}`,
+            qtyClass: 'qty-minus',
+            qtyColor: 'var(--danger-color)'
+        };
+    }
+
+    // 3. Return (Sales Return)
+    if (typeStr === 're') {
+        return {
+            typeClass: 'log-re',
+            typeStr: '退货',
+            tagClass: 're',
+            iconClass: 'fa-rotate-left',
+            badgeClass: 'badge-re',
+            signedStr: `+${absQty}`,
+            qtyClass: 'qty-plus',
+            qtyColor: 'var(--warning-color)'
+        };
+    }
+
+    // 4. Delete product log
+    if (typeStr === 'del') {
+        return {
+            typeClass: 'log-del',
+            typeStr: '删除',
+            tagClass: 'del',
+            iconClass: 'fa-trash-can',
+            badgeClass: 'badge-del',
+            signedStr: `-${absQty}`,
+            qtyClass: 'qty-minus',
+            qtyColor: 'var(--text-light)'
+        };
+    }
+
+    // 5. Fallback for 'in' or general stock-in
+    if (qty < 0) {
+        return {
+            typeClass: 'log-audit_out',
+            typeStr: '盘亏',
+            tagClass: 'audit_out',
+            iconClass: 'fa-square-minus',
+            badgeClass: 'badge-audit-out',
+            signedStr: `-${absQty}`,
+            qtyClass: 'qty-minus',
+            qtyColor: '#ea580c'
+        };
+    }
+
+    return {
+        typeClass: 'log-in',
+        typeStr: '入库',
+        tagClass: 'in',
+        iconClass: 'fa-circle-arrow-down',
+        badgeClass: 'badge-in',
+        signedStr: `+${absQty}`,
+        qtyClass: 'qty-plus',
+        qtyColor: 'var(--success-color)'
+    };
+}
+
 function loadDashboardMetrics() {
     fetch('api/stock.php?action=stats')
         .then(res => res.json())
@@ -843,27 +940,7 @@ function loadDashboardMetrics() {
                 const item = document.createElement('div');
                 item.className = 'activity-item';
                 
-                let iconClass = 'fa-circle-arrow-down';
-                let badgeClass = 'badge-in';
-                let signedStr = `+${log.quantity}`;
-                let qtyClass = 'qty-plus';
-                
-                if (log.type === 'out') {
-                    iconClass = 'fa-circle-arrow-up';
-                    badgeClass = 'badge-out';
-                    signedStr = `${log.quantity}`;
-                    qtyClass = 'qty-minus';
-                } else if (log.type === 're') {
-                    iconClass = 'fa-rotate-left';
-                    badgeClass = 'badge-re';
-                    signedStr = `+${log.quantity}`;
-                    qtyClass = 'qty-plus';
-                } else if (log.type === 'del') {
-                    iconClass = 'fa-trash-can';
-                    badgeClass = 'badge-del';
-                    signedStr = `${log.quantity}`;
-                    qtyClass = 'qty-minus';
-                }
+                const meta = getLogTypeMeta(log.type, log.quantity, log.mark);
                 
                 // Formulate description
                 let detailsStr = log.history_name;
@@ -873,13 +950,13 @@ function loadDashboardMetrics() {
                 
                 item.innerHTML = `
                     <div class="activity-main">
-                        <div class="act-type-badge ${badgeClass}"><i class="fa-solid ${iconClass}"></i></div>
+                        <div class="act-type-badge ${meta.badgeClass}"><i class="fa-solid ${meta.iconClass}"></i></div>
                         <div class="activity-info">
                             <h4>${detailsStr}</h4>
                             <p>${log.created_at} • 操作人: ${log.operator_name || '系统'}</p>
                         </div>
                     </div>
-                    <div class="activity-qty ${qtyClass}">${signedStr}</div>
+                    <div class="activity-qty ${meta.qtyClass}">${meta.signedStr}</div>
                 `;
                 container.appendChild(item);
             });
@@ -1113,57 +1190,49 @@ function buildProductDetailPanelHtml(p, prefix = 'desktop') {
 
     return `
         <div class="product-expand-panel">
-            <div class="expand-layout-grid">
-                <!-- Left: Product Images Gallery (Full Height) -->
-                <div class="detail-block detail-block-left-images">
-                    <div class="detail-images-list" id="detail-images-${prefix}-${p.id}">
-                        <div class="loading-spinner" style="padding: 6px; font-size: 11px;"><i class="fa-solid fa-spinner fa-spin"></i> 加载图片...</div>
-                    </div>
+            <!-- Top: Attributes Grid -->
+            <div class="detail-grid">
+                <div class="detail-item" style="grid-column: 1 / -1;">
+                    <span class="detail-item-label">商品名称</span>
+                    <div class="detail-item-val" style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); word-break: break-word; white-space: normal; line-height: 1.4;">${escapeHtml(p.name)}</div>
                 </div>
+                <div class="detail-item">
+                    <span class="detail-item-label">条形码 / 编码</span>
+                    <div class="detail-item-val">${barcodeHtml}</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item-label">型号 / 规格</span>
+                    <div class="detail-item-val">${escapeHtml(metaSub)}</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item-label">品牌 / 厂商</span>
+                    <div class="detail-item-val">${escapeHtml(p.brand || '--')}</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item-label">存放仓位</span>
+                    <div class="detail-item-val"><span style="color: var(--primary-color);">${escapeHtml(p.local || '--')}</span></div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item-label">单价 / 单位</span>
+                    <div class="detail-item-val"><span style="color: var(--primary-color);">¥${p.price}</span> / ${escapeHtml(p.unit || '个')}</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item-label">当前库存</span>
+                    <div class="detail-item-val"><span style="font-size: 15px; font-weight: 700;">${p.stock}</span> ${escapeHtml(p.unit || '个')}</div>
+                </div>
+                <div class="detail-item" style="grid-column: 1 / -1;">
+                    <span class="detail-item-label">备注信息</span>
+                    <div class="detail-item-val" style="font-weight: normal; color: var(--text-secondary);">${escapeHtml(p.mark || '无备注')}</div>
+                </div>
+            </div>
 
-                <!-- Right Column: Top (Attributes) + Bottom (Recent Transactions) -->
-                <div class="expand-layout-right">
-                    <!-- Top Right: Attributes Grid -->
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <span class="detail-item-label">条形码 / 编码</span>
-                            <div class="detail-item-val">${barcodeHtml}</div>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item-label">型号 / 规格</span>
-                            <div class="detail-item-val">${escapeHtml(metaSub)}</div>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item-label">品牌 / 厂商</span>
-                            <div class="detail-item-val">${escapeHtml(p.brand || '--')}</div>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item-label">存放仓位</span>
-                            <div class="detail-item-val"><span style="color: var(--primary-color);">${escapeHtml(p.local || '--')}</span></div>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item-label">单价 / 单位</span>
-                            <div class="detail-item-val"><span style="color: var(--primary-color);">¥${p.price}</span> / ${escapeHtml(p.unit || '个')}</div>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item-label">当前库存</span>
-                            <div class="detail-item-val"><span style="font-size: 15px; font-weight: 700;">${p.stock}</span> ${escapeHtml(p.unit || '个')}</div>
-                        </div>
-                        <div class="detail-item" style="grid-column: 1 / -1;">
-                            <span class="detail-item-label">备注信息</span>
-                            <div class="detail-item-val" style="font-weight: normal; color: var(--text-secondary);">${escapeHtml(p.mark || '无备注')}</div>
-                        </div>
-                    </div>
-
-                    <!-- Bottom Right: Recent Transactions -->
-                    <div class="detail-block">
-                        <div class="detail-block-title">
-                            <span><i class="fa-solid fa-clock-rotate-left"></i> 最近出入库流转 (最新5条)</span>
-                        </div>
-                        <div class="detail-logs-table-wrapper" id="detail-logs-${prefix}-${p.id}">
-                            <div class="loading-spinner" style="padding: 6px; font-size: 11px;"><i class="fa-solid fa-spinner fa-spin"></i> 加载流转流水...</div>
-                        </div>
-                    </div>
+            <!-- Bottom: Recent Transactions -->
+            <div class="detail-block">
+                <div class="detail-block-title">
+                    <span><i class="fa-solid fa-clock-rotate-left"></i> 最近出入库流转 (最新5条)</span>
+                </div>
+                <div class="detail-logs-table-wrapper" id="detail-logs-${prefix}-${p.id}">
+                    <div class="loading-spinner" style="padding: 6px; font-size: 11px;"><i class="fa-solid fa-spinner fa-spin"></i> 加载流转流水...</div>
                 </div>
             </div>
         </div>
@@ -1202,7 +1271,7 @@ function toggleProductDetail(productId, isMobile = false) {
             // Populate content if not already populated
             if (!container.hasChildNodes() || container.innerHTML.trim() === '') {
                 container.innerHTML = buildProductDetailPanelHtml(p, 'desktop');
-                loadExpandedImagesAndLogs(productId, 'desktop');
+                loadExpandedLogs(productId, 'desktop');
                 attachAccordionInnerEvents(container);
             }
         }
@@ -1233,110 +1302,14 @@ function toggleProductDetail(productId, isMobile = false) {
             // Populate content if not already populated
             if (!body.hasChildNodes() || body.innerHTML.trim() === '') {
                 body.innerHTML = buildProductDetailPanelHtml(p, 'mobile');
-                loadExpandedImagesAndLogs(productId, 'mobile');
+                loadExpandedLogs(productId, 'mobile');
                 attachAccordionInnerEvents(body);
             }
         }
     }
 }
 
-function loadExpandedImagesAndLogs(productId, prefix) {
-    // 1. Fetch images
-    const imgContainer = document.getElementById(`detail-images-${prefix}-${productId}`);
-    if (imgContainer) {
-        fetch(`api/products.php?action=images&product_id=${productId}`)
-            .then(res => res.json())
-            .then(images => {
-                imgContainer.innerHTML = '';
-                const p = state.currentProducts ? state.currentProducts[productId] : null;
-                
-                // Build complete list of image URLs
-                let imgList = [];
-                if (Array.isArray(images) && images.length > 0) {
-                    imgList = images.map(img => img.image_path);
-                } else if (p && p.image) {
-                    imgList = [p.image];
-                }
-
-                if (imgList.length === 0) {
-                    if (prefix === 'mobile') {
-                        const block = imgContainer.closest('.detail-block');
-                        if (block) block.style.display = 'none';
-                    } else {
-                        imgContainer.innerHTML = `
-                            <div class="gallery-no-image">
-                                <i class="fa-regular fa-image"></i>
-                                <span>暂未上传商品图片</span>
-                            </div>
-                        `;
-                    }
-                    return;
-                }
-
-                // Render Top Main Large Preview + Bottom Thumbnail Strip
-                const galleryWrapper = document.createElement('div');
-                galleryWrapper.className = 'detail-gallery-wrapper';
-                
-                const mainContainer = document.createElement('div');
-                mainContainer.className = 'gallery-main-container';
-                mainContainer.innerHTML = `
-                    <img class="gallery-main-img" src="${imgList[0]}" alt="商品图片预览" title="点击全屏放大预览">
-                `;
-
-                // Zoom main image on click
-                mainContainer.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const currentImg = mainContainer.querySelector('.gallery-main-img');
-                    if (currentImg) {
-                        zoomImage(currentImg.src);
-                    }
-                });
-
-                // Thumbnail index container
-                const thumbsContainer = document.createElement('div');
-                thumbsContainer.className = 'gallery-thumbs-container';
-
-                imgList.forEach((src, idx) => {
-                    const thumbItem = document.createElement('div');
-                    thumbItem.className = `gallery-thumb-item ${idx === 0 ? 'active' : ''}`;
-                    thumbItem.setAttribute('data-src', src);
-                    thumbItem.innerHTML = `<img src="${src}" alt="缩略图 ${idx + 1}">`;
-
-                    // Click / Hover thumbnail to switch top preview image
-                    const selectThumb = (e) => {
-                        e.stopPropagation();
-                        thumbsContainer.querySelectorAll('.gallery-thumb-item').forEach(el => el.classList.remove('active'));
-                        thumbItem.classList.add('active');
-                        const mainImg = mainContainer.querySelector('.gallery-main-img');
-                        if (mainImg && mainImg.src !== src) {
-                            mainImg.style.opacity = '0.5';
-                            setTimeout(() => {
-                                mainImg.src = src;
-                                mainImg.style.opacity = '1';
-                            }, 60);
-                        }
-                    };
-
-                    thumbItem.addEventListener('click', selectThumb);
-                    thumbItem.addEventListener('mouseenter', selectThumb);
-                    thumbsContainer.appendChild(thumbItem);
-                });
-
-                galleryWrapper.appendChild(mainContainer);
-                galleryWrapper.appendChild(thumbsContainer);
-                imgContainer.appendChild(galleryWrapper);
-            })
-            .catch(() => {
-                if (prefix === 'mobile') {
-                    const block = imgContainer.closest('.detail-block');
-                    if (block) block.style.display = 'none';
-                } else {
-                    imgContainer.innerHTML = '<span class="detail-no-image" style="color: var(--danger-color);">加载图片失败</span>';
-                }
-            });
-    }
-
-    // 2. Fetch recent 5 logs
+function loadExpandedLogs(productId, prefix) {
     const logContainer = document.getElementById(`detail-logs-${prefix}-${productId}`);
     if (logContainer) {
         fetch(`api/stock.php?product_id=${productId}&limit=5`)
@@ -1371,23 +1344,10 @@ function loadExpandedImagesAndLogs(productId, prefix) {
 
                 const tbody = table.querySelector('tbody');
                 logs.forEach(log => {
-                    let typeTag = '<span class="log-type-tag in">入库</span>';
-                    let qtySigned = `+${log.quantity}`;
-                    let qtyColor = 'var(--success-color)';
-
-                    if (log.type === 'out') {
-                        typeTag = '<span class="log-type-tag out">出库</span>';
-                        qtySigned = `${log.quantity}`;
-                        qtyColor = 'var(--danger-color)';
-                    } else if (log.type === 're') {
-                        typeTag = '<span class="log-type-tag re">退货</span>';
-                        qtySigned = `+${log.quantity}`;
-                        qtyColor = 'var(--warning-color)';
-                    } else if (log.type === 'del') {
-                        typeTag = '<span class="log-type-tag del">删除</span>';
-                        qtySigned = `${log.quantity}`;
-                        qtyColor = 'var(--text-light)';
-                    }
+                    const meta = getLogTypeMeta(log.type, log.quantity, log.mark);
+                    const typeTag = `<span class="log-type-tag ${meta.tagClass}">${meta.typeStr}</span>`;
+                    const qtySigned = meta.signedStr;
+                    const qtyColor = meta.qtyColor;
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -1517,7 +1477,8 @@ function attachProductCardEvents() {
     document.querySelectorAll('.table-thumb').forEach(thumb => {
         thumb.addEventListener('click', (e) => {
             e.stopPropagation();
-            zoomImage(thumb.src);
+            const productId = thumb.getAttribute('data-id') || thumb.closest('[data-id]')?.getAttribute('data-id');
+            openGalleryModal(productId, thumb.src);
         });
     });
 }
@@ -1669,6 +1630,31 @@ function setupSearchFilters() {
         loadLogsList();
     });
 
+    // Date quick pills click handler
+    document.querySelectorAll('.logs-date-bar .date-pill').forEach(pill => {
+        pill.addEventListener('click', (e) => {
+            document.querySelectorAll('.logs-date-bar .date-pill').forEach(p => p.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            
+            const range = e.currentTarget.getAttribute('data-range');
+            setLogDateRange(range);
+            
+            state.logsPagination.page = 1;
+            loadLogsList();
+        });
+    });
+
+    // Custom Date inputs change handler
+    const handleCustomDateChange = () => {
+        document.querySelectorAll('.logs-date-bar .date-pill').forEach(p => p.classList.remove('active'));
+        state.logsPagination.page = 1;
+        loadLogsList();
+    };
+    const startDatePicker = document.getElementById('log-start-date');
+    const endDatePicker = document.getElementById('log-end-date');
+    if (startDatePicker) startDatePicker.addEventListener('change', handleCustomDateChange);
+    if (endDatePicker) endDatePicker.addEventListener('change', handleCustomDateChange);
+
     // Transaction product search inputs filter
     const txnSearchInput = document.getElementById('txn-product-search');
     if (txnSearchInput) {
@@ -1682,15 +1668,60 @@ function setupSearchFilters() {
     }
 }
 
+function formatDateYMD(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function setLogDateRange(rangeKey) {
+    const startDateInput = document.getElementById('log-start-date');
+    const endDateInput = document.getElementById('log-end-date');
+    if (!startDateInput || !endDateInput) return;
+
+    const now = new Date();
+    
+    if (rangeKey === 'all') {
+        startDateInput.value = '';
+        endDateInput.value = '';
+    } else if (rangeKey === 'today') {
+        const todayStr = formatDateYMD(now);
+        startDateInput.value = todayStr;
+        endDateInput.value = todayStr;
+    } else if (rangeKey === 'yesterday') {
+        const yest = new Date(now);
+        yest.setDate(yest.getDate() - 1);
+        const yestStr = formatDateYMD(yest);
+        startDateInput.value = yestStr;
+        endDateInput.value = yestStr;
+    } else if (rangeKey === 'before_yesterday') {
+        const beforeYest = new Date(now);
+        beforeYest.setDate(beforeYest.getDate() - 2);
+        const byStr = formatDateYMD(beforeYest);
+        startDateInput.value = byStr;
+        endDateInput.value = byStr;
+    } else if (rangeKey === 'last_7_days') {
+        const endStr = formatDateYMD(now);
+        const start7 = new Date(now);
+        start7.setDate(start7.getDate() - 6);
+        const startStr = formatDateYMD(start7);
+        startDateInput.value = startStr;
+        endDateInput.value = endStr;
+    }
+}
+
 /* --------------------------------------------------
  * 7. History/Audit Logs Loading
  * -------------------------------------------------- */
 function loadLogsList() {
     const search = document.getElementById('log-search-input').value;
     const type = document.getElementById('log-filter-type').value;
+    const startDate = document.getElementById('log-start-date')?.value || '';
+    const endDate = document.getElementById('log-end-date')?.value || '';
     const page = state.logsPagination.page;
     
-    fetch(`api/stock.php?page=${page}&limit=20&search=${encodeURIComponent(search)}&type=${type}`)
+    fetch(`api/stock.php?page=${page}&limit=20&search=${encodeURIComponent(search)}&type=${type}&start_date=${startDate}&end_date=${endDate}`)
         .then(res => res.json())
         .then(data => {
             state.logsPagination = data.pagination;
@@ -1705,32 +1736,13 @@ function loadLogsList() {
             
             data.logs.forEach(log => {
                 const card = document.createElement('div');
+                const meta = getLogTypeMeta(log.type, log.quantity, log.mark);
                 
-                let typeClass = 'log-in';
-                let typeStr = '入库';
-                let tagClass = 'in';
-                let qtySigned = `+${log.quantity}`;
-                let qtyClass = 'qty-plus';
-                
-                if (log.type === 'out') {
-                    typeClass = 'log-out';
-                    typeStr = '出库';
-                    tagClass = 'out';
-                    qtySigned = `${log.quantity}`;
-                    qtyClass = 'qty-minus';
-                } else if (log.type === 're') {
-                    typeClass = 'log-re';
-                    typeStr = '退货';
-                    tagClass = 're';
-                    qtySigned = `+${log.quantity}`;
-                    qtyClass = 'qty-plus';
-                } else if (log.type === 'del') {
-                    typeClass = 'log-del';
-                    typeStr = '删除';
-                    tagClass = 'del';
-                    qtySigned = `${log.quantity}`;
-                    qtyClass = 'qty-minus';
-                }
+                const typeClass = meta.typeClass;
+                const typeStr = meta.typeStr;
+                const tagClass = meta.tagClass;
+                const qtySigned = meta.signedStr;
+                const qtyClass = meta.qtyClass;
                 
                 card.className = `timeline-card ${typeClass}`;
                 
@@ -2327,9 +2339,8 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
         title.textContent = '编辑商品详情';
         if (stockLabel) stockLabel.textContent = '当前库存';
         
-        // If settings disable editing stock directly, make it read-only
         if (stockInput) {
-            stockInput.readOnly = (state.settings.allowEditStock !== 'true');
+            stockInput.readOnly = false;
         }
         
         // Fetch specific details directly by ID
@@ -2432,7 +2443,7 @@ function loadProductImages(productId) {
                 
                 // Attach zoom view action
                 div.querySelector('img').addEventListener('click', () => {
-                    zoomImage(img.image_path);
+                    openGalleryModal(productId, img.image_path);
                 });
                 
                 // Attach delete action
@@ -2660,11 +2671,131 @@ function openUserModal(userId = null, username = '', role = 'user') {
     openModal('user-modal');
 }
 
-function zoomImage(src) {
+const viewerState = {
+    images: [],
+    currentIndex: 0
+};
+
+function openGalleryModal(productId, initialSrc) {
+    viewerState.images = initialSrc ? [initialSrc] : [];
+    viewerState.currentIndex = 0;
+    updateViewerUI();
+    openModal('image-viewer-modal');
+
+    if (productId) {
+        fetch(`api/products.php?action=images&product_id=${productId}`)
+            .then(res => res.json())
+            .then(images => {
+                if (Array.isArray(images) && images.length > 0) {
+                    const list = images.map(img => img.image_path);
+                    if (initialSrc && !list.includes(initialSrc)) {
+                        list.unshift(initialSrc);
+                    }
+                    viewerState.images = list;
+                    const idx = viewerState.images.indexOf(initialSrc);
+                    viewerState.currentIndex = idx >= 0 ? idx : 0;
+                    updateViewerUI();
+                }
+            })
+            .catch(() => {});
+    }
+}
+
+function updateViewerUI() {
     const viewerImg = document.getElementById('viewer-img');
+    const prevBtn = document.getElementById('viewer-prev-btn');
+    const nextBtn = document.getElementById('viewer-next-btn');
+    const counter = document.getElementById('viewer-counter');
+    const total = viewerState.images.length;
+
+    if (total === 0) return;
+
     if (viewerImg) {
-        viewerImg.src = src;
-        openModal('image-viewer-modal');
+        viewerImg.style.opacity = '0.5';
+        setTimeout(() => {
+            viewerImg.src = viewerState.images[viewerState.currentIndex];
+            viewerImg.style.opacity = '1';
+        }, 50);
+    }
+
+    if (total > 1) {
+        if (prevBtn) prevBtn.style.display = 'flex';
+        if (nextBtn) nextBtn.style.display = 'flex';
+        if (counter) {
+            counter.style.display = 'inline-block';
+            counter.textContent = `${viewerState.currentIndex + 1} / ${total}`;
+        }
+    } else {
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (counter) {
+            counter.style.display = 'none';
+        }
+    }
+}
+
+function navViewer(direction) {
+    if (viewerState.images.length <= 1) return;
+    if (direction === 'next') {
+        viewerState.currentIndex = (viewerState.currentIndex + 1) % viewerState.images.length;
+    } else if (direction === 'prev') {
+        viewerState.currentIndex = (viewerState.currentIndex - 1 + viewerState.images.length) % viewerState.images.length;
+    }
+    updateViewerUI();
+}
+
+function zoomImage(src) {
+    openGalleryModal(null, src);
+}
+
+function setupViewerEvents() {
+    const prevBtn = document.getElementById('viewer-prev-btn');
+    const nextBtn = document.getElementById('viewer-next-btn');
+    const closeBtn = document.getElementById('viewer-close-btn');
+    const viewerModal = document.getElementById('image-viewer-modal');
+
+    if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); navViewer('prev'); });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); navViewer('next'); });
+    if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeModal('image-viewer-modal'); });
+
+    if (viewerModal) {
+        viewerModal.addEventListener('click', (e) => {
+            if (!e.target.closest('.viewer-img-container') && !e.target.closest('.viewer-footer')) {
+                closeModal('image-viewer-modal');
+            }
+        });
+    }
+
+    // Keyboard shortcuts (Left / Right Arrow, Escape)
+    document.addEventListener('keydown', (e) => {
+        const modal = document.getElementById('image-viewer-modal');
+        if (modal && modal.classList.contains('open')) {
+            if (e.key === 'ArrowLeft') {
+                navViewer('prev');
+            } else if (e.key === 'ArrowRight') {
+                navViewer('next');
+            } else if (e.key === 'Escape') {
+                closeModal('image-viewer-modal');
+            }
+        }
+    });
+
+    // Touch swipe gestures for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const imgContainer = document.querySelector('.viewer-img-container');
+    if (imgContainer) {
+        imgContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        imgContainer.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 40) {
+                navViewer('next');
+            } else if (touchEndX - touchStartX > 40) {
+                navViewer('prev');
+            }
+        }, { passive: true });
     }
 }
 

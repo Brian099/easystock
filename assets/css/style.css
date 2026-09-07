@@ -871,32 +871,73 @@ button, input, select, textarea {
 .custom-setting-checkbox {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: var(--bg-color);
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
+    height: 32px;
+    box-sizing: border-box;
+    background: #ffffff;
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    border-radius: 6px;
     font-size: 13px;
     color: var(--text-primary);
     cursor: pointer;
     user-select: none;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .custom-setting-checkbox:hover {
-    border-color: var(--primary-color);
-    background: #ffffff;
+    border-color: #93c5fd;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
 }
 
 .custom-setting-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    margin: 0;
+}
+
+.custom-setting-checkbox .custom-chk-box {
     width: 15px;
     height: 15px;
-    cursor: pointer;
-    accent-color: var(--primary-color);
+    border: 1.5px solid #cbd5e1;
+    border-radius: 4px;
+    background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease-in-out;
+    box-sizing: border-box;
+}
+
+.custom-setting-checkbox .custom-chk-box i {
+    color: #ffffff;
+    font-size: 9px;
+    display: none;
+    line-height: 1;
+}
+
+.custom-setting-checkbox input[type="checkbox"]:checked + .custom-chk-box {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.custom-setting-checkbox input[type="checkbox"]:checked + .custom-chk-box i {
+    display: block;
 }
 
 .custom-setting-checkbox .chk-label {
     font-weight: 500;
+    font-size: 13px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
 }
 
 .search-input-wrapper {
@@ -1327,7 +1368,112 @@ button, input, select, textarea {
 .timeline-card.log-in::before { background-color: var(--success-color); }
 .timeline-card.log-out::before { background-color: var(--danger-color); }
 .timeline-card.log-re::before { background-color: var(--warning-color); }
+.timeline-card.log-audit_in::before { background-color: #06b6d4; }
+.timeline-card.log-audit_out::before { background-color: #f97316; }
 .timeline-card.log-del::before { background-color: var(--text-light); }
+
+/* Date Quick Filter Bar (Strict single row: date pickers on the left, quick buttons on the right) */
+.logs-date-bar {
+    margin-bottom: 12px;
+    padding: 10px 16px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.logs-date-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.logs-date-bar .date-custom-inputs {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+}
+
+.logs-date-bar .date-custom-inputs .date-input {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+    height: 32px;
+    width: 135px;
+    outline: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: all 0.18s ease-in-out;
+}
+
+.logs-date-bar .date-custom-inputs .date-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.logs-date-bar .date-custom-inputs .date-sep {
+    color: var(--text-light);
+    font-size: 13px;
+    user-select: none;
+    padding: 0 4px;
+}
+
+.logs-date-bar .date-quick-pills {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+.logs-date-bar .date-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 5px 12px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    height: 32px;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: all 0.18s ease-in-out;
+}
+
+.logs-date-bar .date-pill:hover {
+    border-color: #93c5fd;
+    color: var(--primary-color);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
+    transform: translateY(-1px);
+}
+
+.logs-date-bar .date-pill:active {
+    transform: scale(0.97);
+}
+
+.logs-date-bar .date-pill.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
 
 .timeline-header {
     display: flex;
@@ -1353,7 +1499,12 @@ button, input, select, textarea {
 .log-type-tag.in { background-color: var(--success-light); color: var(--success-color); }
 .log-type-tag.out { background-color: var(--danger-light); color: var(--danger-color); }
 .log-type-tag.re { background-color: #fef3c7; color: var(--warning-color); }
+.log-type-tag.audit_in { background-color: #cff4fc; color: #0891b2; }
+.log-type-tag.audit_out { background-color: #ffedd5; color: #ea580c; }
 .log-type-tag.del { background-color: #f1f5f9; color: var(--text-light); }
+
+.act-type-badge.badge-audit-in { background-color: #cff4fc; color: #0891b2; }
+.act-type-badge.badge-audit-out { background-color: #ffedd5; color: #ea580c; }
 
 .timeline-time {
     font-size: 11px;
@@ -1499,7 +1650,7 @@ input:checked + .slider:before {
     margin-bottom: 16px;
 }
 
-.input-group label {
+.input-group > label {
     display: block;
     font-weight: 500;
     font-size: 13px;
@@ -1507,7 +1658,11 @@ input:checked + .slider:before {
     margin-bottom: 6px;
 }
 
-.input-group input, .input-group select, .input-group textarea {
+.input-group > input:not([type="checkbox"]):not([type="radio"]),
+.input-group > select,
+.input-group > textarea,
+.input-group .combobox-wrapper input,
+.input-group .scan-input-container input {
     width: 100%;
     padding: 12px 14px;
     border-radius: var(--border-radius-sm);
@@ -2198,36 +2353,160 @@ input:checked + .slider:before {
 
 /* Image Viewer Lightbox Modal */
 .viewer-modal {
-    background-color: rgba(15, 23, 42, 0.9) !important;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 500;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(10, 15, 25, 0.95) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2000 !important;
+    padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom) 8px !important;
+    box-sizing: border-box !important;
 }
 
 .viewer-content {
-    position: relative;
-    max-width: 90%;
-    max-height: 90%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 1000px !important;
+    max-height: 96vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
 }
 
-.viewer-content img {
-    max-width: 100%;
-    max-height: 80vh;
-    object-fit: contain;
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-lg);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+.viewer-close-btn {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    outline: none !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    font-size: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    transition: background-color 0.2s, transform 0.2s !important;
+    z-index: 2010 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.viewer-close-btn:active, .viewer-close-btn:hover {
+    background: rgba(244, 63, 94, 0.85) !important;
+    color: #ffffff !important;
+    transform: scale(1.08) !important;
+}
+
+.viewer-img-container {
+    position: relative !important;
+    width: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-top: 48px !important;
+    overflow: hidden !important;
+}
+
+.viewer-img-container img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
+    user-select: none !important;
+    -webkit-user-drag: none !important;
+}
+
+.viewer-nav-btn {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    outline: none !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    color: #ffffff !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    transition: background-color 0.2s, transform 0.2s !important;
+    z-index: 2010 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.viewer-nav-btn:active, .viewer-nav-btn:hover {
+    background: var(--primary-color) !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+.viewer-nav-btn.prev-btn {
+    left: 6px !important;
+}
+
+.viewer-nav-btn.next-btn {
+    right: 6px !important;
+}
+
+.viewer-footer {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 8px 0 6px 0 !important;
+    flex-shrink: 0 !important;
+}
+
+.viewer-counter {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    padding: 3px 14px !important;
+    border-radius: 14px !important;
+    letter-spacing: 0.5px !important;
+    backdrop-filter: blur(4px) !important;
 }
 
 .viewer-caption {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 13px;
-    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    text-align: center !important;
 }
 
 /* Transaction Search Results List */

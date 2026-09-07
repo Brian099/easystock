@@ -286,27 +286,12 @@ elseif ($method === 'PUT') {
     try {
         $pdo->beginTransaction();
         
-        // Check if editing stock directly is allowed or if stock changed
+        // Log stock adjustment if stock changed (empty type '' represents direct stock edit/audit)
         $stock_changed = ($new_stock !== (int)$product['stock']);
         if ($stock_changed) {
-            // Check if global settings allow editing stock directly
-            $sett_stmt = $pdo->query("SELECT allowEditStock FROM setting LIMIT 1");
-            $allow_edit = $sett_stmt->fetchColumn() === 'true';
-            
-            if (!$allow_edit) {
-                // Not allowed to modify stock directly! Must use stock_log
-                send_json(['error' => 'Direct stock modification is disabled. Please record in/out logs.'], 400);
-            }
-            
-            // Log the adjustment
             $diff = $new_stock - (int)$product['stock'];
-            $log_type = $diff > 0 ? 'in' : 'out';
-            $log_qty = abs($diff);
-            
-            $log_stmt = $pdo->prepare("INSERT INTO stock_log (product_id, history_name, history_model, user_id, type, quantity) VALUES (?, ?, ?, ?, ?, ?)");
-            // If out, log quantity as negative (standard in database audit)
-            $signed_qty = $diff; // keep sign or store absolute? The stock_log quantity in original dump had signed quantity (like -3, 5, etc.)
-            $log_stmt->execute([$product_id, $name, $model, $currentUser['id'], $log_type, $signed_qty]);
+            $log_stmt = $pdo->prepare("INSERT INTO stock_log (product_id, history_name, history_model, user_id, type, quantity) VALUES (?, ?, ?, ?, '', ?)");
+            $log_stmt->execute([$product_id, $name, $model, $currentUser['id'], $diff]);
         }
         
         $update_stmt = $pdo->prepare("UPDATE products SET model = ?, name = ?, barcode = ?, spec = ?, unit = ?, brand = ?, price = ?, local = ?, stock = ?, mark = ? WHERE id = ?");

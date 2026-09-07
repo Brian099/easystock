@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>智能库存管理系统</title>
     <!-- Local FontAwesome Icons -->
     <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="assets/css/style.css?v=2.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=3.1">
 </head>
+
 <body>
 
     <!-- App Shell Container -->
@@ -27,16 +30,22 @@
                         <label><i class="fa-solid fa-database"></i> 选择数据库类型</label>
                         <div class="segment-control db-type-selector">
                             <input type="radio" name="install-db-type" id="db-type-sqlite" value="sqlite" checked>
-                            <label for="db-type-sqlite" class="segment-label"><i class="fa-solid fa-file-shield"></i> SQLite (免配置/本地文件)</label>
-                            
+                            <label for="db-type-sqlite" class="segment-label"><i class="fa-solid fa-file-shield"></i>
+                                SQLite (免配置/本地文件)</label>
+
                             <input type="radio" name="install-db-type" id="db-type-mysql" value="mysql">
-                            <label for="db-type-mysql" class="segment-label"><i class="fa-solid fa-server"></i> MySQL / MariaDB</label>
+                            <label for="db-type-mysql" class="segment-label"><i class="fa-solid fa-server"></i> MySQL /
+                                MariaDB</label>
                         </div>
                     </div>
 
                     <!-- SQLite Info Box -->
-                    <div id="install-sqlite-box" style="padding: 12px 14px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: var(--border-radius-sm); margin-bottom: 16px; font-size: 13px; line-height: 1.6;">
-                        <p style="margin: 0; color: var(--text-primary);"><i class="fa-solid fa-circle-check" style="color: var(--primary-color);"></i> <strong>零配置快速启动</strong>：系统将自动在 <code>data/stock.db</code> 创建并维护数据库，适合单机、群晖 NAS 或极简部署。</p>
+                    <div id="install-sqlite-box"
+                        style="padding: 12px 14px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: var(--border-radius-sm); margin-bottom: 16px; font-size: 13px; line-height: 1.6;">
+                        <p style="margin: 0; color: var(--text-primary);"><i class="fa-solid fa-circle-check"
+                                style="color: var(--primary-color);"></i> <strong>零配置快速启动</strong>：系统将自动在
+                            <code>data/stock.db</code> 创建并维护数据库，适合单机、群晖 NAS 或极简部署。
+                        </p>
                     </div>
 
                     <!-- MySQL Config Fields -->
@@ -59,7 +68,8 @@
                         </div>
                     </div>
 
-                    <hr class="form-divider" style="margin: 15px 0; border: none; border-top: 1px dashed var(--border-color);">
+                    <hr class="form-divider"
+                        style="margin: 15px 0; border: none; border-top: 1px dashed var(--border-color);">
                     <div class="input-group">
                         <label for="install-admin-user"><i class="fa-solid fa-user-gear"></i> 管理员用户名</label>
                         <input type="text" id="install-admin-user" required value="admin">
@@ -69,13 +79,16 @@
                         <input type="password" id="install-admin-pass" required placeholder="至少 6 位，用于登录系统">
                     </div>
                     <div class="input-group" id="install-demo-group" style="margin-top: 5px; margin-bottom: 15px;">
-                        <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                        <label
+                            style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
                             <input type="checkbox" id="install-import-demo"> 导入预置演示/历史商品数据 (可选)
                         </label>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block" id="install-submit-btn">开始安装并初始化 <i class="fa-solid fa-check"></i></button>
+                    <button type="submit" class="btn btn-primary btn-block" id="install-submit-btn">开始安装并初始化 <i
+                            class="fa-solid fa-check"></i></button>
                     <div id="install-error" class="alert alert-danger hidden"></div>
-                    <div id="install-loading" class="loading-spinner hidden" style="padding: 10px 0;"><i class="fa-solid fa-spinner fa-spin"></i> 正在初始化数据库...</div>
+                    <div id="install-loading" class="loading-spinner hidden" style="padding: 10px 0;"><i
+                            class="fa-solid fa-spinner fa-spin"></i> 正在初始化数据库...</div>
                 </form>
             </div>
         </div>
@@ -95,9 +108,11 @@
                     </div>
                     <div class="input-group">
                         <label for="login-password"><i class="fa-solid fa-lock"></i> 密码</label>
-                        <input type="password" id="login-password" required placeholder="请输入密码" autocomplete="current-password">
+                        <input type="password" id="login-password" required placeholder="请输入密码"
+                            autocomplete="current-password">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">登录 <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+                    <button type="submit" class="btn btn-primary btn-block">登录 <i
+                            class="fa-solid fa-arrow-right-to-bracket"></i></button>
                     <div id="login-error" class="alert alert-danger hidden"></div>
                 </form>
             </div>
@@ -113,7 +128,8 @@
                 </div>
                 <div class="user-status-area">
                     <span id="header-user-role" class="badge">管理员</span>
-                    <button id="logout-btn" class="header-btn" title="退出登录"><i class="fa-solid fa-power-off"></i></button>
+                    <button id="logout-btn" class="header-btn" title="退出登录"><i
+                            class="fa-solid fa-power-off"></i></button>
                 </div>
             </header>
 
@@ -124,13 +140,18 @@
                         <i class="fa-solid fa-boxes-stacked"></i>
                         <span class="logo-text">智能库存系统</span>
                     </div>
-                    <button id="drawer-close" class="drawer-close-btn" title="关闭"><i class="fa-solid fa-xmark"></i></button>
+                    <button id="drawer-close" class="drawer-close-btn" title="关闭"><i
+                            class="fa-solid fa-xmark"></i></button>
                 </div>
                 <nav class="drawer-nav">
-                    <a href="#dashboard" class="nav-item active" data-target="dashboard" data-title="统计看板" title="统计看板"><i class="fa-solid fa-chart-simple"></i> <span class="nav-text">仪表盘</span></a>
-                    <a href="#products" class="nav-item" data-target="products" data-title="商品管理" title="商品管理"><i class="fa-solid fa-cubes"></i> <span class="nav-text">商品管理</span></a>
-                    <a href="#logs" class="nav-item" data-target="logs" data-title="流转历史" title="流转历史"><i class="fa-solid fa-clipboard-list"></i> <span class="nav-text">流转历史</span></a>
-                    <a href="#settings" class="nav-item" data-target="settings" data-title="系统设置" title="系统设置"><i class="fa-solid fa-gears"></i> <span class="nav-text">系统设置</span></a>
+                    <a href="#dashboard" class="nav-item active" data-target="dashboard" data-title="统计看板"
+                        title="统计看板"><i class="fa-solid fa-chart-simple"></i> <span class="nav-text">仪表盘</span></a>
+                    <a href="#products" class="nav-item" data-target="products" data-title="商品管理" title="商品管理"><i
+                            class="fa-solid fa-cubes"></i> <span class="nav-text">商品管理</span></a>
+                    <a href="#logs" class="nav-item" data-target="logs" data-title="流转历史" title="流转历史"><i
+                            class="fa-solid fa-clipboard-list"></i> <span class="nav-text">流转历史</span></a>
+                    <a href="#settings" class="nav-item" data-target="settings" data-title="系统设置" title="系统设置"><i
+                            class="fa-solid fa-gears"></i> <span class="nav-text">系统设置</span></a>
                 </nav>
                 <div class="drawer-footer">
                     <div class="user-info-full">
@@ -191,8 +212,10 @@
                     <div class="quick-actions-section">
                         <h3>快捷操作</h3>
                         <div class="quick-actions-grid">
-                            <button id="quick-in-btn" class="quick-btn"><i class="fa-solid fa-circle-plus"></i> <span>快速入库</span></button>
-                            <button id="quick-out-btn" class="quick-btn"><i class="fa-solid fa-circle-minus"></i> <span>快速出库</span></button>
+                            <button id="quick-in-btn" class="quick-btn"><i class="fa-solid fa-circle-plus"></i>
+                                <span>快速入库</span></button>
+                            <button id="quick-out-btn" class="quick-btn"><i class="fa-solid fa-circle-minus"></i>
+                                <span>快速出库</span></button>
                         </div>
                     </div>
 
@@ -214,10 +237,14 @@
                 <section id="view-products" class="view">
                     <div class="view-header">
                         <h2>商品管理</h2>
-                        <div class="view-header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            <button type="button" id="export-products-btn" class="btn btn-secondary btn-sm" title="导出商品数据为 CSV 表格"><i class="fa-solid fa-file-export"></i> 导出</button>
-                            <button type="button" id="import-products-btn" class="btn btn-secondary btn-sm" title="批量导入商品数据表格"><i class="fa-solid fa-file-import"></i> 导入</button>
-                            <button type="button" id="add-product-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 新增商品</button>
+                        <div class="view-header-actions"
+                            style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" id="export-products-btn" class="btn btn-secondary btn-sm"
+                                title="导出商品数据为 CSV 表格"><i class="fa-solid fa-file-export"></i> 导出</button>
+                            <button type="button" id="import-products-btn" class="btn btn-secondary btn-sm"
+                                title="批量导入商品数据表格"><i class="fa-solid fa-file-import"></i> 导入</button>
+                            <button type="button" id="add-product-btn" class="btn btn-primary btn-sm"><i
+                                    class="fa-solid fa-plus"></i> 新增商品</button>
                         </div>
                     </div>
 
@@ -258,9 +285,10 @@
                         <div class="search-input-wrapper">
                             <i class="fa-solid fa-magnifying-glass search-icon"></i>
                             <input type="text" id="product-search-input" placeholder="输入关键字检索商品...">
-                            <button id="barcode-scan-shortcut" class="barcode-shortcut-btn" title="扫码"><i class="fa-solid fa-camera"></i></button>
+                            <button id="barcode-scan-shortcut" class="barcode-shortcut-btn" title="扫码"><i
+                                    class="fa-solid fa-camera"></i></button>
                         </div>
-                        
+
                         <div class="filter-controls-row">
                             <select id="product-filter-brand">
                                 <option value="">全部品牌</option>
@@ -286,10 +314,30 @@
                 <!-- C. AUDIT LOGS VIEW -->
                 <section id="view-logs" class="view">
                     <div class="view-header">
-                        <h2>收发历史明细</h2>
+                        <h2>库存变动历史明细</h2>
                     </div>
 
-                    <!-- Logs Filter -->
+                    <!-- Date Quick Filter Bar (Date pickers on the left, quick buttons on the right) -->
+                    <div class="logs-date-bar glass"
+                        style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; justify-content: flex-start !important; gap: 12px !important; margin-bottom: 12px; padding: 10px 16px; overflow-x: auto;">
+                        <div class="date-custom-inputs"
+                            style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 6px !important; flex-shrink: 0 !important;">
+                            <input type="date" id="log-start-date" class="date-input">
+                            <span class="date-sep"
+                                style="color: var(--text-light); font-size: 13px; padding: 0 4px; user-select: none;">至</span>
+                            <input type="date" id="log-end-date" class="date-input">
+                        </div>
+                        <div class="date-quick-pills"
+                            style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 6px !important; flex-wrap: nowrap !important; flex-shrink: 0 !important;">
+                            <button type="button" class="date-pill active" data-range="all">全部时间</button>
+                            <button type="button" class="date-pill" data-range="today">今天</button>
+                            <button type="button" class="date-pill" data-range="yesterday">昨天</button>
+                            <button type="button" class="date-pill" data-range="before_yesterday">前天</button>
+                            <button type="button" class="date-pill" data-range="last_7_days">最近7天</button>
+                        </div>
+                    </div>
+
+                    <!-- Logs Filter (Search & Type Dropdown) -->
                     <div class="search-filter-bar glass logs-filter-bar">
                         <div class="search-input-wrapper">
                             <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -297,10 +345,12 @@
                         </div>
                         <select id="log-filter-type">
                             <option value="">所有类型</option>
-                            <option value="in">仅入库 (in)</option>
-                            <option value="out">仅出库 (out)</option>
-                            <option value="re">仅退货 (re)</option>
-                            <option value="del">仅删除 (del)</option>
+                            <option value="in">仅入库</option>
+                            <option value="out">仅出库</option>
+                            <option value="re">仅退货</option>
+                            <option value="audit_in">仅盘盈</option>
+                            <option value="audit_out">仅盘亏</option>
+                            <option value="del">仅删除</option>
                         </select>
                     </div>
 
@@ -309,7 +359,7 @@
                         <!-- Dynamically loaded -->
                         <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>
                     </div>
-                    
+
                     <div class="pagination-container" id="logs-pagination"></div>
                 </section>
 
@@ -325,9 +375,12 @@
                             <h3><i class="fa-solid fa-screwdriver-wrench"></i> 系统设置与公司标识</h3>
                             <form id="global-settings-form">
                                 <div class="input-group" style="margin-bottom: 16px;">
-                                    <label for="setting-company-name"><i class="fa-solid fa-building"></i> 公司标识 / 名称</label>
-                                    <input type="text" id="setting-company-name" placeholder="请输入公司名称（如：XX智能科技有限公司）" maxlength="50">
-                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">设置后将显示在前台顶部顶栏，代替原来默认的“智能库存”；若留空则恢复默认名称。</small>
+                                    <label for="setting-company-name"><i class="fa-solid fa-building"></i> 公司标识 /
+                                        名称</label>
+                                    <input type="text" id="setting-company-name" placeholder="请输入公司名称（如：XX智能科技有限公司）"
+                                        maxlength="50">
+                                    <small
+                                        style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">设置后将显示在前台顶部顶栏，代替原来默认的“智能库存”；若留空则恢复默认名称。</small>
                                 </div>
                                 <div class="toggle-group" style="margin-bottom: 15px;">
                                     <div class="toggle-label-desc">
@@ -342,41 +395,51 @@
 
                                 <div class="input-group" style="margin-bottom: 18px;">
                                     <label><i class="fa-solid fa-filter"></i> 默认搜索内容来源设置</label>
-                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 2px; margin-bottom: 8px; display: block;">配置商品管理进入系统时默认启用的检索字段范围：</small>
+                                    <small
+                                        style="color: var(--text-secondary); font-size: 12px; margin-top: 2px; margin-bottom: 8px; display: block;">配置商品管理进入系统时默认启用的检索字段范围：</small>
                                     <div class="settings-search-fields-grid" id="setting-search-fields-list">
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="name" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">商品名称</span>
                                         </label>
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="model" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">型号</span>
                                         </label>
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="spec" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">规格</span>
                                         </label>
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="barcode" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">商品编码</span>
                                         </label>
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="brand" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">品牌</span>
                                         </label>
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="local" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">仓位</span>
                                         </label>
                                         <label class="custom-setting-checkbox">
                                             <input type="checkbox" name="default-search-fields" value="mark" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
                                             <span class="chk-label">备注</span>
                                         </label>
                                     </div>
                                 </div>
 
-                                <div style="font-size: 12px; color: var(--text-light); line-height: 1.6; padding: 10px 12px; background: var(--bg-color); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px;">
-                                    <i class="fa-solid fa-circle-info"></i> <strong>提示</strong>：商品单位、厂商/品牌和仓位候选项由系统<strong>自动从商品库中实时提取</strong>，录入商品时可直接选择或任意输入新名称。
+                                <div
+                                    style="font-size: 12px; color: var(--text-light); line-height: 1.6; padding: 10px 12px; background: var(--bg-color); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px;">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <strong>提示</strong>：商品单位、厂商/品牌和仓位候选项由系统<strong>自动从商品库中实时提取</strong>，录入商品时可直接选择或任意输入新名称。
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm">保存设置</button>
                             </form>
@@ -402,29 +465,39 @@
 
                         <!-- Barcode Maintenance (Admin Only) -->
                         <div id="settings-barcodes-card" class="settings-card glass hidden">
-                            <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                            <div class="card-header"
+                                style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
                                 <h3><i class="fa-solid fa-barcode"></i> 商品条形码数据维护</h3>
-                                <button type="button" id="btn-check-barcodes" class="btn btn-secondary btn-sm"><i class="fa-solid fa-magnifying-glass"></i> 检测状态</button>
+                                <button type="button" id="btn-check-barcodes" class="btn btn-secondary btn-sm"><i
+                                        class="fa-solid fa-magnifying-glass"></i> 检测状态</button>
                             </div>
-                            <hr class="form-divider" style="margin: 10px 0 15px 0; border: none; border-top: 1px dashed var(--border-color);">
-                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 15px;">
+                            <hr class="form-divider"
+                                style="margin: 10px 0 15px 0; border: none; border-top: 1px dashed var(--border-color);">
+                            <div
+                                style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 15px;">
                                 <p>为系统中未录入条码的历史商品批量生成唯一的标准 13 位 EAN-13 商品条码。已录入条码的商品不受任何影响。</p>
                             </div>
-                            <div id="barcode-stats-badge" style="padding: 10px 14px; border-radius: var(--border-radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); font-size: 13px; margin-bottom: 15px;">
+                            <div id="barcode-stats-badge"
+                                style="padding: 10px 14px; border-radius: var(--border-radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); font-size: 13px; margin-bottom: 15px;">
                                 <i class="fa-solid fa-spinner fa-spin"></i> 正在读取条码统计数据...
                             </div>
-                            <button type="button" id="btn-fill-barcodes" class="btn btn-primary btn-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> 一键自动补全缺失条码</button>
+                            <button type="button" id="btn-fill-barcodes" class="btn btn-primary btn-sm"><i
+                                    class="fa-solid fa-wand-magic-sparkles"></i> 一键自动补全缺失条码</button>
                         </div>
 
                         <!-- User Accounts Management (Admin Only) -->
                         <div id="settings-users-card" class="settings-card glass hidden">
-                            <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                            <div class="card-header"
+                                style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
                                 <h3><i class="fa-solid fa-users-gear"></i> 用户账号管理</h3>
-                                <button type="button" id="settings-add-user-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> 新增账号</button>
+                                <button type="button" id="settings-add-user-btn" class="btn btn-primary btn-sm"><i
+                                        class="fa-solid fa-user-plus"></i> 新增账号</button>
                             </div>
-                            <hr class="form-divider" style="margin: 10px 0 15px 0; border: none; border-top: 1px dashed var(--border-color);">
+                            <hr class="form-divider"
+                                style="margin: 10px 0 15px 0; border: none; border-top: 1px dashed var(--border-color);">
                             <div class="users-list-wrapper" id="settings-users-list">
-                                <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载账号列表...</div>
+                                <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载账号列表...
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -483,8 +556,10 @@
                                 <div class="scan-input-container">
                                     <input type="text" id="prod-barcode" placeholder="条码 (新增时自动生成)">
                                     <div class="scan-input-actions">
-                                        <button type="button" class="scan-btn" id="generate-barcode-btn" title="重新随机生成条码"><i class="fa-solid fa-arrows-rotate"></i></button>
-                                        <button type="button" class="scan-btn" id="scan-barcode-btn" title="摄像头扫码录入"><i class="fa-solid fa-camera"></i></button>
+                                        <button type="button" class="scan-btn" id="generate-barcode-btn"
+                                            title="重新随机生成条码"><i class="fa-solid fa-arrows-rotate"></i></button>
+                                        <button type="button" class="scan-btn" id="scan-barcode-btn" title="摄像头扫码录入"><i
+                                                class="fa-solid fa-camera"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -492,7 +567,8 @@
                                 <label for="prod-unit">单位</label>
                                 <div class="combobox-wrapper">
                                     <input type="text" id="prod-unit" placeholder="选择或输入单位" autocomplete="off">
-                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-units-menu" title="展开单位选项"><i class="fa-solid fa-chevron-down"></i></button>
+                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-units-menu"
+                                        title="展开单位选项"><i class="fa-solid fa-chevron-down"></i></button>
                                     <div class="combobox-dropdown-menu" id="suggested-units-menu"></div>
                                 </div>
                             </div>
@@ -502,7 +578,9 @@
                                 <label for="prod-brand">厂商/品牌</label>
                                 <div class="combobox-wrapper">
                                     <input type="text" id="prod-brand" placeholder="选择或输入厂商/品牌" autocomplete="off">
-                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-brands-menu" title="展开厂商选项"><i class="fa-solid fa-chevron-down"></i></button>
+                                    <button type="button" class="combobox-toggle-btn"
+                                        data-target="suggested-brands-menu" title="展开厂商选项"><i
+                                            class="fa-solid fa-chevron-down"></i></button>
                                     <div class="combobox-dropdown-menu" id="suggested-brands-menu"></div>
                                 </div>
                             </div>
@@ -510,7 +588,9 @@
                                 <label for="prod-local">仓位</label>
                                 <div class="combobox-wrapper">
                                     <input type="text" id="prod-local" placeholder="选择或输入仓位" autocomplete="off">
-                                    <button type="button" class="combobox-toggle-btn" data-target="suggested-locals-menu" title="展开仓位选项"><i class="fa-solid fa-chevron-down"></i></button>
+                                    <button type="button" class="combobox-toggle-btn"
+                                        data-target="suggested-locals-menu" title="展开仓位选项"><i
+                                            class="fa-solid fa-chevron-down"></i></button>
                                     <div class="combobox-dropdown-menu" id="suggested-locals-menu"></div>
                                 </div>
                             </div>
@@ -541,7 +621,8 @@
                                     <span>相册选取</span>
                                 </div>
                                 <div class="upload-trigger-square" id="camera-upload-trigger-area">
-                                    <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="hidden">
+                                    <input type="file" id="camera-file-input" accept="image/*" capture="environment"
+                                        class="hidden">
                                     <i class="fa-solid fa-camera"></i>
                                     <span>相机拍照</span>
                                 </div>
@@ -570,11 +651,12 @@
                             <label for="txn-product-search">搜索商品 (输入名称/型号/条码) *</label>
                             <input type="text" id="txn-product-search" placeholder="输入关键字检索商品..." autocomplete="off">
                         </div>
-                        
+
                         <div class="input-group" id="txn-results-group">
                             <label>检索结果 (点击选择商品) *</label>
                             <div id="txn-search-results-list" class="txn-search-results-list">
-                                <div class="loading-spinner" style="padding: 15px;"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载商品...</div>
+                                <div class="loading-spinner" style="padding: 15px;"><i
+                                        class="fa-solid fa-spinner fa-spin"></i> 正在加载商品...</div>
                             </div>
                         </div>
 
@@ -585,21 +667,26 @@
                             <label>操作类型 *</label>
                             <div class="segment-control">
                                 <input type="radio" name="txn-type" id="txn-type-in" value="in" checked>
-                                <label for="txn-type-in" class="segment-label segment-in"><i class="fa-solid fa-circle-arrow-down"></i> 入库</label>
-                                
+                                <label for="txn-type-in" class="segment-label segment-in"><i
+                                        class="fa-solid fa-circle-arrow-down"></i> 入库</label>
+
                                 <input type="radio" name="txn-type" id="txn-type-out" value="out">
-                                <label for="txn-type-out" class="segment-label segment-out"><i class="fa-solid fa-circle-arrow-up"></i> 出库</label>
-                                
+                                <label for="txn-type-out" class="segment-label segment-out"><i
+                                        class="fa-solid fa-circle-arrow-up"></i> 出库</label>
+
                                 <input type="radio" name="txn-type" id="txn-type-re" value="re">
-                                <label for="txn-type-re" class="segment-label segment-re"><i class="fa-solid fa-rotate-left"></i> 退货</label>
+                                <label for="txn-type-re" class="segment-label segment-re"><i
+                                        class="fa-solid fa-rotate-left"></i> 退货</label>
                             </div>
                         </div>
                         <div class="input-group">
                             <label for="txn-quantity">数量 *</label>
                             <div class="quantity-input-touch-stepper">
-                                <button type="button" class="stepper-btn minus" onclick="document.getElementById('txn-quantity').value = Math.max(1, parseInt(document.getElementById('txn-quantity').value)-1)">-</button>
+                                <button type="button" class="stepper-btn minus"
+                                    onclick="document.getElementById('txn-quantity').value = Math.max(1, parseInt(document.getElementById('txn-quantity').value)-1)">-</button>
                                 <input type="number" id="txn-quantity" value="1" min="1" required>
-                                <button type="button" class="stepper-btn plus" onclick="document.getElementById('txn-quantity').value = parseInt(document.getElementById('txn-quantity').value)+1">+</button>
+                                <button type="button" class="stepper-btn plus"
+                                    onclick="document.getElementById('txn-quantity').value = parseInt(document.getElementById('txn-quantity').value)+1">+</button>
                             </div>
                         </div>
                         <div class="input-group">
@@ -656,7 +743,8 @@
                     <div class="modal-body">
                         <div class="input-group">
                             <label for="user-form-username">用户名 *</label>
-                            <input type="text" id="user-form-username" required placeholder="请输入用户名" autocomplete="username">
+                            <input type="text" id="user-form-username" required placeholder="请输入用户名"
+                                autocomplete="username">
                         </div>
                         <div class="input-group" id="user-form-password-group">
                             <label for="user-form-password">密码 *</label>
@@ -665,8 +753,8 @@
                         <div class="input-group">
                             <label for="user-form-role">角色权限组 *</label>
                             <select id="user-form-role" required>
-                                <option value="user">普通操作员 (user)</option>
-                                <option value="admin">系统管理员 (admin)</option>
+                                <option value="user">普通操作员</option>
+                                <option value="admin">系统管理员</option>
                             </select>
                         </div>
                     </div>
@@ -688,12 +776,15 @@
                 <form id="import-products-form">
                     <div class="modal-body">
                         <!-- Step 1: Download template -->
-                        <div class="import-template-box" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--border-radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 15px; gap: 10px;">
+                        <div class="import-template-box"
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--border-radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 15px; gap: 10px;">
                             <div>
                                 <strong style="font-size: 13px;"><i class="fa-solid fa-file-csv"></i> 导入模板规范</strong>
-                                <p style="font-size: 12px; color: var(--text-light); margin-top: 2px;">请按照标准表格格式整理商品数据后导入</p>
+                                <p style="font-size: 12px; color: var(--text-light); margin-top: 2px;">
+                                    请按照标准表格格式整理商品数据后导入</p>
                             </div>
-                            <a href="api/import_products.php?action=template" class="btn btn-secondary btn-sm" download="商品批量导入模板.csv" style="flex-shrink: 0;">
+                            <a href="api/import_products.php?action=template" class="btn btn-secondary btn-sm"
+                                download="商品批量导入模板.csv" style="flex-shrink: 0;">
                                 <i class="fa-solid fa-download"></i> 下载模板
                             </a>
                         </div>
@@ -701,17 +792,20 @@
                         <!-- Step 2: Choose file -->
                         <div class="input-group">
                             <label for="import-file-input">选择 CSV 表格文件 (*.csv) *</label>
-                            <input type="file" id="import-file-input" accept=".csv,text/csv" required style="padding: 8px;">
+                            <input type="file" id="import-file-input" accept=".csv,text/csv" required
+                                style="padding: 8px;">
                         </div>
 
                         <!-- Step 3: Conflict mode -->
                         <div class="input-group">
                             <label>遇到已存在的重复商品时：</label>
                             <div style="display: flex; gap: 15px; margin-top: 6px; flex-wrap: wrap;">
-                                <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                <label
+                                    style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                                     <input type="radio" name="import-mode" value="skip" checked> 跳过不处理
                                 </label>
-                                <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                <label
+                                    style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                                     <input type="radio" name="import-mode" value="update"> 覆盖更新已有商品
                                 </label>
                             </div>
@@ -719,36 +813,52 @@
 
                         <!-- Step 4: Auto Barcode checkbox -->
                         <div class="input-group" style="margin-top: 10px;">
-                            <label style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <label
+                                style="font-size: 13px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                 <input type="checkbox" id="import-auto-barcode" checked> 自动为无条码的商品生成唯一 EAN-13 条形码
                             </label>
                         </div>
 
                         <!-- Result message area -->
-                        <div id="import-result-box" class="alert alert-success hidden" style="margin-top: 15px; line-height: 1.5;"></div>
-                        <div id="import-error-box" class="alert alert-danger hidden" style="margin-top: 15px; line-height: 1.5;"></div>
+                        <div id="import-result-box" class="alert alert-success hidden"
+                            style="margin-top: 15px; line-height: 1.5;"></div>
+                        <div id="import-error-box" class="alert alert-danger hidden"
+                            style="margin-top: 15px; line-height: 1.5;"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
-                        <button type="submit" id="import-submit-btn" class="btn btn-primary"><i class="fa-solid fa-upload"></i> 开始导入</button>
+                        <button type="submit" id="import-submit-btn" class="btn btn-primary"><i
+                                class="fa-solid fa-upload"></i> 开始导入</button>
                     </div>
                 </form>
             </div>
         </div>
-        
+
         <!-- E. Image Viewer Lightbox Modal -->
-        <div id="image-viewer-modal" class="modal viewer-modal" onclick="closeModal('image-viewer-modal')">
+        <div id="image-viewer-modal" class="modal viewer-modal">
             <div class="viewer-content">
-                <img id="viewer-img" src="" alt="Enlarged View">
-                <p class="viewer-caption">点击任意位置关闭</p>
+                <button type="button" class="viewer-close-btn" id="viewer-close-btn" title="关闭 (Esc)"><i
+                        class="fa-solid fa-xmark"></i></button>
+                <div class="viewer-img-container">
+                    <button type="button" id="viewer-prev-btn" class="viewer-nav-btn prev-btn" title="上一张 (←)"><i
+                            class="fa-solid fa-chevron-left"></i></button>
+                    <img id="viewer-img" src="" alt="Enlarged View">
+                    <button type="button" id="viewer-next-btn" class="viewer-nav-btn next-btn" title="下一张 (→)"><i
+                            class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="viewer-footer">
+                    <span id="viewer-counter" class="viewer-counter">1 / 1</span>
+                    <p class="viewer-caption">点击左右按钮或按键盘方向键 (← / →) 切换图片</p>
+                </div>
             </div>
         </div>
-        
+
         <!-- Global Alert Dialog toast notifications -->
         <div id="toast" class="toast">提示信息</div>
     </div>
 
     <!-- Application Script -->
-    <script src="assets/js/app.js?v=2.6"></script>
+    <script src="assets/js/app.js?v=2.7"></script>
 </body>
+
 </html>
