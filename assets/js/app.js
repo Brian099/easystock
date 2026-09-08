@@ -592,9 +592,11 @@ function setupForms() {
     
     // B. Product Form
     const productForm = document.getElementById('product-form');
-    productForm.addEventListener('submit', (e) => {
+    productForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const prodId = document.getElementById('prod-id').value;
+        const submitBtn = productForm.querySelector('button[type="submit"]');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '保存';
         
         const payload = {
             name: document.getElementById('prod-name').value,
@@ -616,26 +618,68 @@ function setupForms() {
         const url = prodId ? `api/products.php?id=${prodId}` : 'api/products.php';
         const method = prodId ? 'PUT' : 'POST';
         
-        fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(res => {
+        try {
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...';
+            }
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
             if (!res.ok) {
-                return res.json().then(err => { throw new Error(err.error); });
+                const err = await res.json().catch(() => ({ error: '保存商品失败' }));
+                throw new Error(err.error || '保存商品失败');
             }
-            return res.json();
-        })
-        .then(data => {
-            if (data.success) {
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || '保存商品失败');
+            }
+
+            // If creating a new product and there are staged pending images, upload them now
+            const newId = (data.product && data.product.id) ? data.product.id : data.id;
+            if (!prodId && newId && typeof pendingProductImages !== 'undefined' && pendingProductImages.length > 0) {
+                const totalImgs = pendingProductImages.length;
+                showToast(`商品创建成功，正在自动上传 ${totalImgs} 张图片...`);
+                
+                for (const item of pendingProductImages) {
+                    try {
+                        const processedBlob = item.processedBlob || await compressAndNormalizeImage(item.file, 1600, 0.85);
+                        const formData = new FormData();
+                        formData.append('product_id', newId);
+                        const originalName = item.file.name || 'photo';
+                        const baseName = originalName.replace(/\.[^/.]+$/, "");
+                        formData.append('image', processedBlob, `${baseName}.jpg`);
+                        
+                        await fetch('api/products.php?action=upload_image', {
+                            method: 'POST',
+                            body: formData
+                        });
+                    } catch (imgErr) {
+                        console.error('Failed to upload image for new product:', imgErr);
+                    }
+                }
+                clearPendingProductImages();
+                showToast('商品及图片已全部保存成功！');
+            } else {
                 showToast(prodId ? '修改保存成功' : '新增商品成功');
-                closeModal('product-modal');
-                loadViewData(state.currentView);
-                loadSettings(); // refresh autocompletion list suggestions
             }
-        })
-        .catch(err => showToast(err.message));
+
+            closeModal('product-modal');
+            loadViewData(state.currentView);
+            loadSettings(); // refresh autocompletion list suggestions
+        } catch (err) {
+            showToast(err.message || '保存失败');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+        }
     });
     
     // C. Quick Transaction Form (Manual in/out/re log)
@@ -1975,161 +2019,14 @@ function setupModals() {
     const cameraTrigger = document.getElementById('camera-upload-trigger-area');
     const cameraInput = document.getElementById('camera-file-input');
     
-    // Normalizes image to standard sRGB SDR and strips HDR Gain Maps (Apple HDR / Ultra HDR)
-    async function compressAndNormalizeImage(file, maxDimension = 1600, quality = 0.82) {
-        if (!file || !file.type.startsWith('image/')) {
-            return file;
-        }
-
-        // 1. Try modern createImageBitmap first (hardware accelerated, auto EXIF orientation, strips gain maps)
-        if (typeof createImageBitmap === 'function') {
-            try {
-                const bitmap = await createImageBitmap(file);
-                let width = bitmap.width;
-                let height = bitmap.height;
-
-                if (width && height) {
-                    if (width > maxDimension || height > maxDimension) {
-                        if (width > height) {
-                            height = Math.round((height * maxDimension) / width);
-                            width = maxDimension;
-                        } else {
-                            width = Math.round((width * maxDimension) / height);
-                            height = maxDimension;
-                        }
-                    }
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(bitmap, 0, 0, width, height);
-                        if (typeof bitmap.close === 'function') bitmap.close();
-                        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
-                        if (blob) return blob;
-                    }
-                }
-            } catch (e) {
-                console.warn('createImageBitmap failed, falling back to Image():', e);
-            }
-        }
-
-        // 2. Fallback to HTMLImageElement using naturalWidth/naturalHeight
-        return new Promise((resolve) => {
-            const img = new Image();
-            const url = URL.createObjectURL(file);
-
-            img.onload = () => {
-                URL.revokeObjectURL(url);
-                try {
-                    let width = img.naturalWidth || img.width;
-                    let height = img.naturalHeight || img.height;
-                    if (!width || !height) {
-                        resolve(file);
-                        return;
-                    }
-
-                    if (width > maxDimension || height > maxDimension) {
-                        if (width > height) {
-                            height = Math.round((height * maxDimension) / width);
-                            width = maxDimension;
-                        } else {
-                            width = Math.round((width * maxDimension) / height);
-                            height = maxDimension;
-                        }
-                    }
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
-                    if (!ctx) {
-                        resolve(file);
-                        return;
-                    }
-
-                    // Drawing onto canvas strips HDR Gain Map metadata and normalizes colors to SDR sRGB
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    canvas.toBlob((blob) => {
-                        resolve(blob || file);
-                    }, 'image/jpeg', quality);
-                } catch (e) {
-                    console.warn('Image normalization failed, fallback to original:', e);
-                    resolve(file);
-                }
-            };
-
-            img.onerror = () => {
-                URL.revokeObjectURL(url);
-                resolve(file);
-            };
-
-            img.src = url;
-        });
-    }
-
-    let isUploadingImage = false;
-
-    const uploadFunc = async (inputEl) => {
-        if (isUploadingImage) return;
-
-        const prodId = document.getElementById('prod-id').value;
-        if (!prodId) {
-            showToast('请先保存商品，然后再上传关联图片');
-            return;
-        }
-        
-        if (!inputEl.files || inputEl.files.length === 0) return;
-        const file = inputEl.files[0];
-
-        isUploadingImage = true;
-        showToast('正在处理并上传图片...');
-        
-        try {
-            // Compress and normalize to SDR to prevent mobile screen brightness flicker
-            const processedBlob = await compressAndNormalizeImage(file, 1600, 0.85);
-
-            const formData = new FormData();
-            formData.append('product_id', prodId);
-            const originalName = file.name || 'photo';
-            const baseName = originalName.replace(/\.[^/.]+$/, "");
-            formData.append('image', processedBlob, `${baseName}.jpg`);
-            
-            const res = await fetch('api/products.php?action=upload_image', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: '上传图片失败' }));
-                throw new Error(err.error || '上传图片失败');
-            }
-
-            const data = await res.json();
-            if (data.success) {
-                showToast('图片上传成功');
-                loadProductImages(prodId);
-                inputEl.value = ''; // clear input
-            } else {
-                throw new Error(data.error || '上传图片失败');
-            }
-        } catch (err) {
-            showToast(err.message || '上传图片失败');
-        } finally {
-            isUploadingImage = false;
-        }
-    };
-    
     if (trigger && fileInput) {
         trigger.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', () => uploadFunc(fileInput));
+        fileInput.addEventListener('change', () => handleImageInputSelection(fileInput));
     }
     
     if (cameraTrigger && cameraInput) {
         cameraTrigger.addEventListener('click', () => cameraInput.click());
-        cameraInput.addEventListener('change', () => uploadFunc(cameraInput));
+        cameraInput.addEventListener('change', () => handleImageInputSelection(cameraInput));
     }
     
     // Scanner simulation actions
@@ -2294,6 +2191,215 @@ function loadBarcodeStats(notify = false) {
         });
 }
 
+/* --------------------------------------------------
+ * Image Normalization & Staging Handlers
+ * -------------------------------------------------- */
+let isUploadingImage = false;
+let pendingProductImages = [];
+
+// Normalizes image to standard sRGB SDR and strips HDR Gain Maps (Apple HDR / Ultra HDR)
+async function compressAndNormalizeImage(file, maxDimension = 1600, quality = 0.82) {
+    if (!file || !file.type.startsWith('image/')) {
+        return file;
+    }
+
+    // 1. Try modern createImageBitmap first (hardware accelerated, auto EXIF orientation, strips gain maps)
+    if (typeof createImageBitmap === 'function') {
+        try {
+            const bitmap = await createImageBitmap(file);
+            let width = bitmap.width;
+            let height = bitmap.height;
+
+            if (width && height) {
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(bitmap, 0, 0, width, height);
+                    if (typeof bitmap.close === 'function') bitmap.close();
+                    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+                    if (blob) return blob;
+                }
+            }
+        } catch (e) {
+            console.warn('createImageBitmap failed, falling back to Image():', e);
+        }
+    }
+
+    // 2. Fallback to HTMLImageElement using naturalWidth/naturalHeight
+    return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            try {
+                let width = img.naturalWidth || img.width;
+                let height = img.naturalHeight || img.height;
+                if (!width || !height) {
+                    resolve(file);
+                    return;
+                }
+
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d', { colorSpace: 'srgb' }) || canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(file);
+                    return;
+                }
+
+                // Drawing onto canvas strips HDR Gain Map metadata and normalizes colors to SDR sRGB
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    resolve(blob || file);
+                }, 'image/jpeg', quality);
+            } catch (e) {
+                console.warn('Image normalization failed, fallback to original:', e);
+                resolve(file);
+            }
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve(file);
+        };
+
+        img.src = url;
+    });
+}
+
+function clearPendingProductImages() {
+    if (Array.isArray(pendingProductImages)) {
+        pendingProductImages.forEach(item => {
+            if (item.previewUrl) {
+                URL.revokeObjectURL(item.previewUrl);
+            }
+        });
+    }
+    pendingProductImages = [];
+}
+
+async function addPendingProductImage(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) return;
+    
+    // Normalize image to SDR canvas first to strip Apple HDR Gain Map / Ultra HDR
+    // This prevents mobile screen brightness jumping / flickering when preview is displayed
+    const processedBlob = await compressAndNormalizeImage(file, 1600, 0.85);
+    const previewUrl = URL.createObjectURL(processedBlob);
+    const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const item = { id: tempId, file: file, processedBlob: processedBlob, previewUrl: previewUrl };
+    pendingProductImages.push(item);
+    
+    const container = document.getElementById('product-images-list');
+    if (!container) return;
+    const firstTrigger = document.getElementById('image-upload-trigger-area');
+    
+    const div = document.createElement('div');
+    div.className = 'image-preview-item';
+    div.setAttribute('data-temp-id', tempId);
+    div.innerHTML = `
+        <img src="${previewUrl}" alt="待上传图片" style="cursor: pointer;" title="点击放大预览">
+        <button type="button" class="del-img-btn" title="删除此图片"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    
+    div.querySelector('img').addEventListener('click', () => {
+        openGalleryModal(null, previewUrl);
+    });
+    
+    div.querySelector('.del-img-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        URL.revokeObjectURL(previewUrl);
+        pendingProductImages = pendingProductImages.filter(p => p.id !== tempId);
+        div.remove();
+    });
+    
+    if (firstTrigger) {
+        container.insertBefore(div, firstTrigger);
+    } else {
+        container.appendChild(div);
+    }
+}
+
+async function handleImageInputSelection(inputEl) {
+    if (!inputEl.files || inputEl.files.length === 0) return;
+
+    const prodId = document.getElementById('prod-id').value;
+    const files = Array.from(inputEl.files);
+    inputEl.value = ''; // clear input so change event triggers again if same file is picked
+    
+    // 1. If in New Product mode (no prodId yet), normalize and stage images locally
+    if (!prodId) {
+        for (const file of files) {
+            await addPendingProductImage(file);
+        }
+        showToast(`已添加 ${files.length} 张待保存图片（保存商品时将自动上传）`);
+        return;
+    }
+
+    // 2. If in Edit mode (has prodId), upload immediately
+    if (isUploadingImage) return;
+    isUploadingImage = true;
+    showToast(files.length > 1 ? `正在处理并上传 ${files.length} 张图片...` : '正在处理并上传图片...');
+    
+    try {
+        for (const file of files) {
+            const processedBlob = await compressAndNormalizeImage(file, 1600, 0.85);
+
+            const formData = new FormData();
+            formData.append('product_id', prodId);
+            const originalName = file.name || 'photo';
+            const baseName = originalName.replace(/\.[^/.]+$/, "");
+            formData.append('image', processedBlob, `${baseName}.jpg`);
+            
+            const res = await fetch('api/products.php?action=upload_image', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: '上传图片失败' }));
+                throw new Error(err.error || '上传图片失败');
+            }
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || '上传图片失败');
+            }
+        }
+        
+        showToast('图片上传成功');
+        loadProductImages(prodId);
+    } catch (err) {
+        showToast(err.message || '上传图片失败');
+    } finally {
+        isUploadingImage = false;
+    }
+}
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -2308,6 +2414,9 @@ function closeModal(modalId) {
     if (modal) {
         modal.classList.remove('open');
         document.body.style.overflow = '';
+        if (modalId === 'product-modal') {
+            clearPendingProductImages();
+        }
     }
 }
 
@@ -2320,8 +2429,13 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
     const uploader = document.querySelector('.image-uploader-section');
     
     form.reset();
+    clearPendingProductImages();
     document.getElementById('prod-id').value = '';
     document.querySelectorAll('#product-images-list .image-preview-item').forEach(item => item.remove());
+    
+    if (uploader) {
+        uploader.classList.remove('hidden'); // Always visible for both new and edit
+    }
     
     if (barcodePreFill) {
         document.getElementById('prod-barcode').value = barcodePreFill;
@@ -2363,7 +2477,6 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
                         stockInput.value = p.stock;
                     }
                     
-                    uploader.classList.remove('hidden');
                     loadProductImages(p.id);
                 }
             });
@@ -2374,7 +2487,6 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
             stockInput.readOnly = false;
             stockInput.value = '0';
         }
-        uploader.classList.add('hidden'); // Image requires item ID, so hide until saved.
 
         // Automatically prefill first default unit from presets
         const unitInput = document.getElementById('prod-unit');
