@@ -7,16 +7,26 @@ if ($method === 'GET') {
     $currentUser = require_login();
     
     // 1. Get global settings config row (id = 1)
-    $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields FROM setting WHERE id = 1 LIMIT 1");
-    $row = $stmt ? $stmt->fetch() : false;
+    $stmt = null;
+    $row = false;
+    try {
+        $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields, requiredProductFields FROM setting WHERE id = 1 LIMIT 1");
+        $row = $stmt ? $stmt->fetch() : false;
+    } catch (Throwable $e) {
+        // Fallback for pre-migration schema
+        $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields FROM setting WHERE id = 1 LIMIT 1");
+        $row = $stmt ? $stmt->fetch() : false;
+    }
     
     $defaultFields = (!empty($row['defaultSearchFields'])) ? (string)$row['defaultSearchFields'] : 'name,model,spec,barcode,brand,local,mark';
+    $requiredProductFields = (!empty($row['requiredProductFields'])) ? (string)$row['requiredProductFields'] : 'name';
     
     $setting = [
         'id' => 1,
         'allowEditStock' => (($row['allowEditStock'] ?? 'false') === 'true') ? 'true' : 'false',
         'companyName' => (string)($row['companyName'] ?? ''),
-        'defaultSearchFields' => $defaultFields
+        'defaultSearchFields' => $defaultFields,
+        'requiredProductFields' => $requiredProductFields
     ];
     
     // 2. Aggregate unique brands, units, and locations directly from products table
@@ -56,21 +66,29 @@ elseif ($method === 'PUT') {
     $companyName = isset($input['companyName']) ? trim(mb_substr((string)$input['companyName'], 0, 100, 'UTF-8')) : '';
     $defaultSearchFields = isset($input['defaultSearchFields']) ? trim((string)$input['defaultSearchFields']) : 'name,model,spec,barcode,brand,local,mark';
     
-    // Validate only allowed fields
-    $valid_fields = ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'];
-    $submitted_fields = array_filter(array_map('trim', explode(',', $defaultSearchFields)));
-    $filtered_fields = array_values(array_intersect($submitted_fields, $valid_fields));
-    $cleanDefaultSearchFields = implode(',', $filtered_fields);
+    // Validate only allowed search fields
+    $valid_search_fields = ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'];
+    $submitted_search_fields = array_filter(array_map('trim', explode(',', $defaultSearchFields)));
+    $filtered_search_fields = array_values(array_intersect($submitted_search_fields, $valid_search_fields));
+    $cleanDefaultSearchFields = implode(',', $filtered_search_fields);
+
+    // Validate required product fields
+    $rawRequiredProductFields = isset($input['requiredProductFields']) ? trim((string)$input['requiredProductFields']) : 'name';
+    $valid_product_fields = ['name', 'model', 'spec', 'barcode', 'unit', 'brand', 'local', 'price', 'mark'];
+    $submitted_req_fields = array_filter(array_map('trim', explode(',', $rawRequiredProductFields)));
+    $filtered_req_fields = array_values(array_intersect($submitted_req_fields, $valid_product_fields));
+    // Always ensure valid string (if none selected, defaults to empty or name)
+    $cleanRequiredProductFields = implode(',', $filtered_req_fields);
 
     try {
         // Standard SQL update/insert compatible with both SQLite and MySQL
-        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ?, defaultSearchFields = ? WHERE id = 1");
-        $stmt->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields]);
+        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ?, defaultSearchFields = ?, requiredProductFields = ? WHERE id = 1");
+        $stmt->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields]);
         
         $chk = $pdo->query("SELECT id FROM setting WHERE id = 1");
         if (!$chk->fetch()) {
-            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName, defaultSearchFields) VALUES (1, ?, ?, ?)");
-            $ins->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields]);
+            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName, defaultSearchFields, requiredProductFields) VALUES (1, ?, ?, ?, ?)");
+            $ins->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields]);
         }
         
         send_json([
@@ -79,13 +97,14 @@ elseif ($method === 'PUT') {
                 'id' => 1,
                 'allowEditStock' => $allowEditStock,
                 'companyName' => $companyName,
-                'defaultSearchFields' => $cleanDefaultSearchFields
+                'defaultSearchFields' => $cleanDefaultSearchFields,
+                'requiredProductFields' => $cleanRequiredProductFields
             ]
         ]);
     } catch (Exception $e) {
         // If column missing, give friendly guide
         if (strpos($e->getMessage(), 'Unknown column') !== false || strpos($e->getMessage(), 'no such column') !== false) {
-            send_json(['error' => '数据库缺少 defaultSearchFields 字段，请访问或执行 api/migrate.php 进行结构更新。详细: ' . $e->getMessage()], 500);
+            send_json(['error' => '数据库缺少设置字段，请访问或执行 api/migrate.php 进行结构更新。详细: ' . $e->getMessage()], 500);
         }
         send_json(['error' => 'Failed to save settings: ' . $e->getMessage()], 500);
     }

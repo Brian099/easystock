@@ -113,7 +113,8 @@ if ($db_type === 'sqlite') {
       `id` INTEGER PRIMARY KEY DEFAULT 1,
       `allowEditStock` TEXT NOT NULL DEFAULT 'false',
       `companyName` TEXT NOT NULL DEFAULT '',
-      `defaultSearchFields` TEXT NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark'
+      `defaultSearchFields` TEXT NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark',
+      `requiredProductFields` TEXT NOT NULL DEFAULT 'name'
     );
 
     CREATE TABLE IF NOT EXISTS `stock_log` (
@@ -146,7 +147,7 @@ if ($db_type === 'sqlite') {
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark');
+    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name');
     ";
 
 } else {
@@ -212,6 +213,7 @@ if ($db_type === 'sqlite') {
       `allowEditStock` varchar(10) NOT NULL DEFAULT 'false' COMMENT '是否允许直接修改库存',
       `companyName` varchar(100) NOT NULL DEFAULT '' COMMENT '公司名称/标识',
       `defaultSearchFields` varchar(255) NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark' COMMENT '默认搜索来源字段',
+      `requiredProductFields` varchar(255) NOT NULL DEFAULT 'name' COMMENT '商品属性必填字段列表',
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -249,8 +251,8 @@ if ($db_type === 'sqlite') {
       UNIQUE KEY `idx_user_username` (`username`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark')
-    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`);
+    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name')
+    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`), `requiredProductFields` = VALUES(`requiredProductFields`);
     ";
 }
 

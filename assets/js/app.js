@@ -9,7 +9,8 @@ const state = {
     settings: {
         allowEditStock: 'false',
         companyName: '',
-        defaultSearchFields: 'name,model,spec,barcode,brand,local,mark'
+        defaultSearchFields: 'name,model,spec,barcode,brand,local,mark',
+        requiredProductFields: 'name'
     },
     activeSearchFields: ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'],
     searchFieldsModifiedByUser: false,
@@ -340,6 +341,9 @@ function loadSettings() {
             // Apply default search fields checkboxes in Settings view
             applySettingsSearchFieldsUI(state.settings.defaultSearchFields);
 
+            // Apply required product fields checkboxes in Settings view
+            applySettingsRequiredFieldsUI(state.settings.requiredProductFields);
+
             // If user hasn't explicitly toggled search chips in this session, sync activeSearchFields with default
             if (!state.searchFieldsModifiedByUser) {
                 const defaultFieldsStr = state.settings.defaultSearchFields || 'name,model,spec,barcode,brand,local,mark';
@@ -353,6 +357,10 @@ function loadSettings() {
             if (companyInput) companyInput.disabled = !isAdmin;
             
             document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]').forEach(chk => {
+                chk.disabled = !isAdmin;
+            });
+            
+            document.querySelectorAll('#setting-required-fields-list input[name="product-required-fields"]').forEach(chk => {
                 chk.disabled = !isAdmin;
             });
             
@@ -375,6 +383,47 @@ function applySettingsSearchFieldsUI(defaultFieldsStr) {
     const checkboxes = document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]');
     checkboxes.forEach(cb => {
         cb.checked = fields.includes(cb.value);
+    });
+}
+
+function applySettingsRequiredFieldsUI(requiredFieldsStr) {
+    const fields = (requiredFieldsStr !== undefined && requiredFieldsStr !== null ? requiredFieldsStr : 'name')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    const checkboxes = document.querySelectorAll('#setting-required-fields-list input[name="product-required-fields"]');
+    checkboxes.forEach(cb => {
+        cb.checked = fields.includes(cb.value);
+    });
+}
+
+function applyProductModalRequiredFieldsUI(requiredFieldsStr = null) {
+    const reqStr = (requiredFieldsStr !== null && requiredFieldsStr !== undefined)
+        ? requiredFieldsStr 
+        : (state.settings?.requiredProductFields !== undefined ? state.settings.requiredProductFields : 'name');
+    
+    const reqList = reqStr.split(',').map(s => s.trim()).filter(Boolean);
+    const allFields = ['name', 'model', 'spec', 'barcode', 'unit', 'brand', 'local', 'price', 'mark'];
+    
+    allFields.forEach(field => {
+        const isReq = reqList.includes(field);
+        const label = document.querySelector(`label[data-field-label="${field}"]`);
+        const input = document.querySelector(`input[data-field-input="${field}"]`);
+        
+        if (label) {
+            const star = label.querySelector('.req-star');
+            if (star) {
+                if (isReq) {
+                    star.classList.remove('hidden');
+                } else {
+                    star.classList.add('hidden');
+                }
+            }
+        }
+        
+        if (input) {
+            input.required = isReq;
+        }
     });
 }
 
@@ -599,16 +648,40 @@ function setupForms() {
         const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '保存';
         
         const payload = {
-            name: document.getElementById('prod-name').value,
-            model: document.getElementById('prod-model').value,
-            spec: document.getElementById('prod-spec').value,
-            barcode: document.getElementById('prod-barcode').value,
-            unit: document.getElementById('prod-unit').value,
-            brand: document.getElementById('prod-brand').value,
-            local: document.getElementById('prod-local').value,
-            price: document.getElementById('prod-price').value,
-            mark: document.getElementById('prod-mark').value
+            name: document.getElementById('prod-name').value.trim(),
+            model: document.getElementById('prod-model').value.trim(),
+            spec: document.getElementById('prod-spec').value.trim(),
+            barcode: document.getElementById('prod-barcode').value.trim(),
+            unit: document.getElementById('prod-unit').value.trim(),
+            brand: document.getElementById('prod-brand').value.trim(),
+            local: document.getElementById('prod-local').value.trim(),
+            price: document.getElementById('prod-price').value.trim(),
+            mark: document.getElementById('prod-mark').value.trim()
         };
+        
+        // Frontend required validation based on active setting
+        const reqStr = state.settings?.requiredProductFields !== undefined ? state.settings.requiredProductFields : 'name';
+        const reqList = reqStr.split(',').map(s => s.trim()).filter(Boolean);
+        const fieldTitles = {
+            name: '商品名称',
+            model: '型号',
+            spec: '规格',
+            barcode: '条形码/编码',
+            unit: '单位',
+            brand: '厂商/品牌',
+            local: '存放仓位',
+            price: '价格/单价',
+            mark: '备注'
+        };
+        
+        for (const f of reqList) {
+            if (fieldTitles[f] && (!payload[f] || payload[f] === '')) {
+                showToast(`【${fieldTitles[f]}】为必填项，请输入后再提交`);
+                const targetInput = document.querySelector(`input[data-field-input="${f}"]`);
+                if (targetInput) targetInput.focus();
+                return;
+            }
+        }
         
         const stockVal = document.getElementById('prod-stock').value;
         if (stockVal !== '') {
@@ -735,13 +808,21 @@ function setupForms() {
             });
             const defaultSearchFields = selectedFields.join(',');
 
+            // Gather selected product required fields
+            const selectedReqFields = [];
+            document.querySelectorAll('#setting-required-fields-list input[name="product-required-fields"]:checked').forEach(cb => {
+                selectedReqFields.push(cb.value);
+            });
+            const requiredProductFields = selectedReqFields.join(',');
+
             fetch('api/settings.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     allowEditStock: allowEdit,
                     companyName: companyName,
-                    defaultSearchFields: defaultSearchFields
+                    defaultSearchFields: defaultSearchFields,
+                    requiredProductFields: requiredProductFields
                 })
             })
             .then(res => {
@@ -754,6 +835,7 @@ function setupForms() {
                 if (data.success) {
                     state.settings = data.settings;
                     updateHeaderBranding(state.settings.companyName);
+                    applyProductModalRequiredFieldsUI(state.settings.requiredProductFields);
                     showToast('系统设置已保存');
                     loadSettings();
                 }
@@ -1025,15 +1107,27 @@ function loadProductsList() {
     }
     
     fetch(url)
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 503) {
+                showInstallScreen();
+                throw new Error('系统尚未初始化安装，请先完成安装引导。');
+            }
+            if (!res.ok) {
+                return res.json().then(err => { throw new Error(err.error || '加载商品列表失败'); });
+            }
+            return res.json();
+        })
         .then(data => {
-            state.productsPagination = data.pagination;
+            if (!data || !Array.isArray(data.products)) {
+                throw new Error(data.error || '数据格式错误');
+            }
+            state.productsPagination = data.pagination || { page: 1, total_pages: 1 };
             state.currentProducts = {};
             const container = document.getElementById('products-list-container');
             container.innerHTML = '';
             
             if (data.products.length === 0) {
-                container.innerHTML = '<div class="loading-spinner">没有找到符合要求的商品</div>';
+                container.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-box-open" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5;"></i><br>暂无商品数据，点击右上角「新增商品」即可添加</div>';
                 document.getElementById('products-pagination').innerHTML = '';
                 return;
             }
@@ -1098,7 +1192,7 @@ function loadProductsList() {
                 }
                 
                 let tableDeleteActionHtml = '';
-                if (state.user.role === 'admin') {
+                if (state.user && state.user.role === 'admin') {
                     tableDeleteActionHtml = `<button class="btn btn-sm btn-secondary delete-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px; color: var(--danger-color); background: var(--danger-light);"><i class="fa-solid fa-trash-can"></i> 删除</button>`;
                 }
                 
@@ -1165,7 +1259,7 @@ function loadProductsList() {
                 }
                 
                 let cardDeleteActionHtml = '';
-                if (state.user.role === 'admin') {
+                if (state.user && state.user.role === 'admin') {
                     cardDeleteActionHtml = `<button class="btn-icon delete-item-btn" data-id="${p.id}" style="background: var(--danger-light); color: var(--danger-color);"><i class="fa-solid fa-trash-can"></i></button>`;
                 }
                 
@@ -1213,6 +1307,12 @@ function loadProductsList() {
             
             // Attach card & accordion events
             attachProductCardEvents();
+        })
+        .catch(err => {
+            const container = document.getElementById('products-list-container');
+            if (container) {
+                container.innerHTML = `<div class="alert alert-danger" style="margin: 20px 0;"><i class="fa-solid fa-triangle-exclamation"></i> 加载商品失败: ${escapeHtml(err.message)}</div>`;
+            }
         });
 }
 
@@ -2446,8 +2546,9 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
         stockGroup.classList.remove('hidden');
     }
     
-    // Ensure datalist suggestions are refreshed
+    // Ensure datalist suggestions are refreshed and required fields UI is applied
     populateSuggestions();
+    applyProductModalRequiredFieldsUI();
     
     if (productId) {
         title.textContent = '编辑商品详情';

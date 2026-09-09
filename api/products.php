@@ -202,6 +202,41 @@ elseif ($method === 'POST') {
     
     // 2. Create product
     else {
+        // Helper to get configured required fields
+        $getRequiredFields = function($pdo) {
+            try {
+                $stmt = $pdo->query("SELECT requiredProductFields FROM setting WHERE id = 1 LIMIT 1");
+                $val = $stmt ? $stmt->fetchColumn() : false;
+                if ($val !== false && $val !== null && trim($val) !== '') {
+                    return array_filter(array_map('trim', explode(',', $val)));
+                }
+            } catch (Throwable $e) {}
+            return ['name'];
+        };
+
+        $validateRequired = function($pdo, $data) use ($getRequiredFields) {
+            $required = $getRequiredFields($pdo);
+            $labels = [
+                'name' => '商品名称',
+                'model' => '型号',
+                'spec' => '规格',
+                'barcode' => '条形码/编码',
+                'unit' => '单位',
+                'brand' => '厂商/品牌',
+                'local' => '存放仓位',
+                'price' => '价格',
+                'mark' => '备注'
+            ];
+            
+            foreach ($required as $field) {
+                if (!isset($labels[$field])) continue;
+                $val = isset($data[$field]) ? trim((string)$data[$field]) : '';
+                if ($val === '') {
+                    send_json(['error' => "【{$labels[$field]}】为必填项，请填写后再提交。"], 400);
+                }
+            }
+        };
+
         $input = get_json_input();
         
         $name = trim($input['name'] ?? '');
@@ -215,12 +250,21 @@ elseif ($method === 'POST') {
         $stock = (int)($input['stock'] ?? 0);
         $mark = trim($input['mark'] ?? '');
         
-        if (!$name) {
-            send_json(['error' => 'Product Name is required.'], 400);
-        }
+        // Dynamic required fields validation
+        $validateRequired($pdo, [
+            'name' => $name,
+            'model' => $model,
+            'barcode' => $barcode,
+            'spec' => $spec,
+            'unit' => $unit,
+            'brand' => $brand,
+            'local' => $local,
+            'price' => $price_input,
+            'mark' => $mark
+        ]);
         
-        // Format price to decimal
-        $price = number_format((float)$price_input, 2, '.', '');
+        // Format price to decimal, default 0.00 if empty
+        $price = is_numeric($price_input) ? number_format((float)$price_input, 2, '.', '') : '0.00';
         
         try {
             $pdo->beginTransaction();
@@ -270,18 +314,58 @@ elseif ($method === 'PUT') {
     
     $input = get_json_input();
     
-    $name = trim($input['name'] ?? $product['name']);
-    $model = trim($input['model'] ?? $product['model']);
-    $barcode = trim($input['barcode'] ?? $product['barcode']);
-    $spec = trim($input['spec'] ?? $product['spec']);
-    $unit = trim($input['unit'] ?? $product['unit']);
-    $brand = trim($input['brand'] ?? $product['brand']);
-    $price_input = trim($input['price'] ?? $product['price']);
-    $local = trim($input['local'] ?? $product['local']);
+    $name = isset($input['name']) ? trim((string)$input['name']) : $product['name'];
+    $model = isset($input['model']) ? trim((string)$input['model']) : $product['model'];
+    $barcode = isset($input['barcode']) ? trim((string)$input['barcode']) : $product['barcode'];
+    $spec = isset($input['spec']) ? trim((string)$input['spec']) : $product['spec'];
+    $unit = isset($input['unit']) ? trim((string)$input['unit']) : $product['unit'];
+    $brand = isset($input['brand']) ? trim((string)$input['brand']) : $product['brand'];
+    $price_input = isset($input['price']) ? trim((string)$input['price']) : $product['price'];
+    $local = isset($input['local']) ? trim((string)$input['local']) : $product['local'];
     $new_stock = isset($input['stock']) ? (int)$input['stock'] : (int)$product['stock'];
-    $mark = trim($input['mark'] ?? $product['mark']);
+    $mark = isset($input['mark']) ? trim((string)$input['mark']) : $product['mark'];
     
-    $price = number_format((float)$price_input, 2, '.', '');
+    // Validate required fields
+    try {
+        $stmtReq = $pdo->query("SELECT requiredProductFields FROM setting WHERE id = 1 LIMIT 1");
+        $valReq = $stmtReq ? $stmtReq->fetchColumn() : false;
+        $requiredList = ($valReq !== false && $valReq !== null && trim($valReq) !== '') ? array_filter(array_map('trim', explode(',', $valReq))) : ['name'];
+    } catch (Throwable $e) {
+        $requiredList = ['name'];
+    }
+    
+    $fieldLabels = [
+        'name' => '商品名称',
+        'model' => '型号',
+        'spec' => '规格',
+        'barcode' => '条形码/编码',
+        'unit' => '单位',
+        'brand' => '厂商/品牌',
+        'local' => '存放仓位',
+        'price' => '价格',
+        'mark' => '备注'
+    ];
+    $currentValues = [
+        'name' => $name,
+        'model' => $model,
+        'barcode' => $barcode,
+        'spec' => $spec,
+        'unit' => $unit,
+        'brand' => $brand,
+        'local' => $local,
+        'price' => $price_input,
+        'mark' => $mark
+    ];
+    foreach ($requiredList as $f) {
+        if (isset($fieldLabels[$f])) {
+            $val = $currentValues[$f] ?? '';
+            if ($val === '') {
+                send_json(['error' => "【{$fieldLabels[$f]}】为必填项，请填写后再提交。"], 400);
+            }
+        }
+    }
+    
+    $price = is_numeric($price_input) ? number_format((float)$price_input, 2, '.', '') : '0.00';
     
     try {
         $pdo->beginTransaction();

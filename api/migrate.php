@@ -71,6 +71,42 @@ try {
     record_step($results, 'setting.defaultSearchFields', 'error', '迁移失败: ' . $e->getMessage());
 }
 
+// ----------------------------------------------------
+// Migration 2: Add requiredProductFields to setting table
+// ----------------------------------------------------
+try {
+    $has_req_column = false;
+    try {
+        $chk2 = $pdo->query("SELECT requiredProductFields FROM setting LIMIT 1");
+        if ($chk2 !== false) {
+            $has_req_column = true;
+        }
+    } catch (Throwable $e) {
+        $has_req_column = false;
+    }
+
+    if ($has_req_column) {
+        record_step($results, 'setting.requiredProductFields', 'already_exists', '字段 requiredProductFields 已存在，无需重复添加');
+    } else {
+        $default_req_val = 'name';
+
+        if ($db_type === 'mysql') {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `requiredProductFields` VARCHAR(255) NOT NULL DEFAULT '$default_req_val' COMMENT '商品属性必填字段列表'";
+        } else {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `requiredProductFields` TEXT NOT NULL DEFAULT '$default_req_val'";
+        }
+
+        $pdo->exec($sql);
+        // Ensure existing rows have the default value
+        $pdo->exec("UPDATE `setting` SET `requiredProductFields` = '$default_req_val' WHERE `requiredProductFields` IS NULL OR `requiredProductFields` = ''");
+
+        record_step($results, 'setting.requiredProductFields', 'success', '成功为 setting 表新增 requiredProductFields 字段');
+    }
+} catch (Throwable $e) {
+    $results['success'] = false;
+    record_step($results, 'setting.requiredProductFields', 'error', '迁移失败: ' . $e->getMessage());
+}
+
 // Output response
 if ($is_cli) {
     echo "========================================\n";

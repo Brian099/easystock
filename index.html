@@ -394,6 +394,59 @@
                                 </div>
 
                                 <div class="input-group" style="margin-bottom: 18px;">
+                                    <label><i class="fa-solid fa-list-check"></i> 商品属性必填项设置</label>
+                                    <small
+                                        style="color: var(--text-secondary); font-size: 12px; margin-top: 2px; margin-bottom: 8px; display: block;">勾选的属性在新增/编辑商品时必须填写，未勾选的属性可空缺留空：</small>
+                                    <div class="settings-search-fields-grid" id="setting-required-fields-list">
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="name" checked>
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">商品名称</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="model">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">型号</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="spec">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">规格</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="barcode">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">条形码/编码</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="unit">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">单位</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="brand">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">厂商/品牌</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="local">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">存放仓位</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="price">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">价格/单价</span>
+                                        </label>
+                                        <label class="custom-setting-checkbox">
+                                            <input type="checkbox" name="product-required-fields" value="mark">
+                                            <span class="custom-chk-box"><i class="fa-solid fa-check"></i></span>
+                                            <span class="chk-label">备注</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="input-group" style="margin-bottom: 18px;">
                                     <label><i class="fa-solid fa-filter"></i> 默认搜索内容来源设置</label>
                                     <small
                                         style="color: var(--text-secondary); font-size: 12px; margin-top: 2px; margin-bottom: 8px; display: block;">配置商品管理进入系统时默认启用的检索字段范围：</small>
@@ -537,24 +590,24 @@
                     <input type="hidden" id="prod-id">
                     <div class="modal-body">
                         <div class="input-group">
-                            <label for="prod-name">商品名称 *</label>
-                            <input type="text" id="prod-name" required placeholder="请输入商品名称">
+                            <label for="prod-name" data-field-label="name">商品名称 <span class="req-star text-danger">*</span></label>
+                            <input type="text" id="prod-name" data-field-input="name" placeholder="请输入商品名称">
                         </div>
                         <div class="form-row">
                             <div class="input-group">
-                                <label for="prod-model">型号</label>
-                                <input type="text" id="prod-model" placeholder="型号">
+                                <label for="prod-model" data-field-label="model">型号 <span class="req-star text-danger hidden">*</span></label>
+                                <input type="text" id="prod-model" data-field-input="model" placeholder="型号">
                             </div>
                             <div class="input-group">
-                                <label for="prod-spec">规格</label>
-                                <input type="text" id="prod-spec" placeholder="规格">
+                                <label for="prod-spec" data-field-label="spec">规格 <span class="req-star text-danger hidden">*</span></label>
+                                <input type="text" id="prod-spec" data-field-input="spec" placeholder="规格">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="input-group">
-                                <label for="prod-barcode">条形码/编码</label>
+                                <label for="prod-barcode" data-field-label="barcode">条形码/编码 <span class="req-star text-danger hidden">*</span></label>
                                 <div class="scan-input-container">
-                                    <input type="text" id="prod-barcode" placeholder="条码 (新增时自动生成)">
+                                    <input type="text" id="prod-barcode" data-field-input="barcode" placeholder="条码 (新增时自动生成)">
                                     <div class="scan-input-actions">
                                         <button type="button" class="scan-btn" id="generate-barcode-btn"
                                             title="重新随机生成条码"><i class="fa-solid fa-arrows-rotate"></i></button>
@@ -564,9 +617,9 @@
                                 </div>
                             </div>
                             <div class="input-group">
-                                <label for="prod-unit">单位</label>
+                                <label for="prod-unit" data-field-label="unit">单位 <span class="req-star text-danger hidden">*</span></label>
                                 <div class="combobox-wrapper">
-                                    <input type="text" id="prod-unit" placeholder="选择或输入单位" autocomplete="off">
+                                    <input type="text" id="prod-unit" data-field-input="unit" placeholder="选择或输入单位" autocomplete="off">
                                     <button type="button" class="combobox-toggle-btn" data-target="suggested-units-menu"
                                         title="展开单位选项"><i class="fa-solid fa-chevron-down"></i></button>
                                     <div class="combobox-dropdown-menu" id="suggested-units-menu"></div>
@@ -575,9 +628,9 @@
                         </div>
                         <div class="form-row">
                             <div class="input-group">
-                                <label for="prod-brand">厂商/品牌</label>
+                                <label for="prod-brand" data-field-label="brand">厂商/品牌 <span class="req-star text-danger hidden">*</span></label>
                                 <div class="combobox-wrapper">
-                                    <input type="text" id="prod-brand" placeholder="选择或输入厂商/品牌" autocomplete="off">
+                                    <input type="text" id="prod-brand" data-field-input="brand" placeholder="选择或输入厂商/品牌" autocomplete="off">
                                     <button type="button" class="combobox-toggle-btn"
                                         data-target="suggested-brands-menu" title="展开厂商选项"><i
                                             class="fa-solid fa-chevron-down"></i></button>
@@ -585,9 +638,9 @@
                                 </div>
                             </div>
                             <div class="input-group">
-                                <label for="prod-local">仓位</label>
+                                <label for="prod-local" data-field-label="local">存放仓位 <span class="req-star text-danger hidden">*</span></label>
                                 <div class="combobox-wrapper">
-                                    <input type="text" id="prod-local" placeholder="选择或输入仓位" autocomplete="off">
+                                    <input type="text" id="prod-local" data-field-input="local" placeholder="选择或输入仓位" autocomplete="off">
                                     <button type="button" class="combobox-toggle-btn"
                                         data-target="suggested-locals-menu" title="展开仓位选项"><i
                                             class="fa-solid fa-chevron-down"></i></button>
@@ -597,8 +650,8 @@
                         </div>
                         <div class="form-row">
                             <div class="input-group">
-                                <label for="prod-price">价格 *</label>
-                                <input type="number" id="prod-price" step="0.01" required placeholder="0.00">
+                                <label for="prod-price" data-field-label="price">价格/单价 <span class="req-star text-danger hidden">*</span></label>
+                                <input type="number" id="prod-price" data-field-input="price" step="0.01" placeholder="0.00">
                             </div>
                             <div class="input-group" id="prod-stock-group">
                                 <label for="prod-stock">初始库存</label>
@@ -606,8 +659,8 @@
                             </div>
                         </div>
                         <div class="input-group">
-                            <label for="prod-mark">备注</label>
-                            <input type="text" id="prod-mark" placeholder="备注信息">
+                            <label for="prod-mark" data-field-label="mark">备注 <span class="req-star text-danger hidden">*</span></label>
+                            <input type="text" id="prod-mark" data-field-input="mark" placeholder="备注信息">
                         </div>
 
                         <!-- Image Section -->
