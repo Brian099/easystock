@@ -1228,6 +1228,7 @@ function loadProductsList() {
                     <td style="text-align: center; vertical-align: middle;">
                         <div class="table-actions" style="display: flex; justify-content: center; gap: 6px;">
                             <button class="btn btn-sm btn-primary adjust-stock-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-right-left"></i> 出入</button>
+                            <button class="btn btn-sm btn-secondary copy-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;" title="复制并快速新增类似商品"><i class="fa-solid fa-copy"></i> 复制</button>
                             <button class="btn btn-sm btn-secondary edit-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-pen-to-square"></i> 编辑</button>
                             ${tableDeleteActionHtml}
                         </div>
@@ -1265,29 +1266,34 @@ function loadProductsList() {
 
                 card.innerHTML = `
                     <div class="compact-product-card-header" data-id="${p.id}">
-                        <div class="card-thumb-area" style="width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.02); border-radius: 6px; overflow: hidden; flex-shrink: 0;">
+                        <div class="card-thumb-area">
                             ${cardImgHtml}
                         </div>
-                        <div class="card-details-area" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                <h4 style="font-size: 13.5px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); flex: 1;">${escapeHtml(p.name)}</h4>
-                                <span class="expand-toggle-icon" style="flex-shrink: 0;"><i class="fa-solid fa-chevron-right" style="font-size: 11px;"></i></span>
+                        <div class="card-content-area">
+                            <div class="card-title-row">
+                                <h4 style="font-size: 14px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); flex: 1;">${escapeHtml(p.name)}</h4>
+                                <span class="expand-toggle-icon" style="flex-shrink: 0; color: var(--text-light); margin-left: 6px;"><i class="fa-solid fa-chevron-right" style="font-size: 11px;"></i></span>
                             </div>
-                            <div style="font-size: 11px; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                ${metaSub ? `<span>${escapeHtml(metaSub)}</span>` : '无规格'}
-                                ${p.brand ? ` | <span>${escapeHtml(p.brand)}</span>` : ''}
-                                ${p.local ? ` | <span style="color: var(--primary-color); font-weight: 500;">${escapeHtml(p.local)}</span>` : ''}
+                            <div class="card-bottom-row">
+                                <div class="card-details-area">
+                                    <div style="font-size: 11px; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${metaSub ? `<span>${escapeHtml(metaSub)}</span>` : '无规格'}
+                                        ${p.brand ? ` | <span>${escapeHtml(p.brand)}</span>` : ''}
+                                        ${p.local ? ` | <span style="color: var(--primary-color); font-weight: 500;">${escapeHtml(p.local)}</span>` : ''}
+                                    </div>
+                                    <div style="font-size: 11px; display: flex; align-items: center; gap: 8px; margin-top: 1px;">
+                                        <span style="font-weight: 700; color: var(--primary-color);">¥${p.price}</span>
+                                        <span class="${stockClass}" style="font-weight: 600;">库存: ${p.stock} ${escapeHtml(p.unit || '个')}</span>
+                                    </div>
+                                    ${p.mark ? `<div style="font-size: 11px; color: var(--text-light); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><i class="fa-solid fa-sticky-note" style="margin-right: 3px; font-size: 10px;"></i>${escapeHtml(p.mark)}</div>` : ''}
+                                </div>
+                                <div class="card-actions-area">
+                                    <button class="btn-icon adjust-stock-btn" data-id="${p.id}" style="background: var(--primary-light); color: var(--primary-color);" title="快捷出入库"><i class="fa-solid fa-right-left"></i></button>
+                                    <button class="btn-icon copy-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary);" title="复制并快速新增类似商品"><i class="fa-solid fa-copy"></i></button>
+                                    <button class="btn-icon edit-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary);" title="编辑商品"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    ${cardDeleteActionHtml}
+                                </div>
                             </div>
-                            <div style="font-size: 11px; display: flex; align-items: center; gap: 8px; margin-top: 1px;">
-                                <span style="font-weight: 700; color: var(--primary-color);">¥${p.price}</span>
-                                <span class="${stockClass}" style="font-weight: 600;">库存: ${p.stock} ${escapeHtml(p.unit || '个')}</span>
-                            </div>
-                            ${p.mark ? `<div style="font-size: 11px; color: var(--text-light); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><i class="fa-solid fa-sticky-note" style="margin-right: 3px; font-size: 10px;"></i>${escapeHtml(p.mark)}</div>` : ''}
-                        </div>
-                        <div class="card-actions-area" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                            <button class="btn-icon adjust-stock-btn" data-id="${p.id}" style="background: var(--primary-light); color: var(--primary-color);" title="快捷出入库"><i class="fa-solid fa-right-left"></i></button>
-                            <button class="btn-icon edit-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary);" title="编辑商品"><i class="fa-solid fa-pen-to-square"></i></button>
-                            ${cardDeleteActionHtml}
                         </div>
                     </div>
                     <div class="compact-product-card-body" id="expand-content-mobile-${p.id}" style="display: none;"></div>
@@ -1595,6 +1601,15 @@ function attachProductCardEvents() {
             e.stopPropagation();
             const id = e.currentTarget.getAttribute('data-id');
             openProductFormModal(id);
+        });
+    });
+
+    // Copy item details for fast new product creation
+    document.querySelectorAll('.copy-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = e.currentTarget.getAttribute('data-id');
+            openProductFormModal(id, null, true);
         });
     });
 
@@ -2520,7 +2535,7 @@ function closeModal(modalId) {
     }
 }
 
-function openProductFormModal(productId = null, barcodePreFill = null) {
+function openProductFormModal(productId = null, barcodePreFill = null, isCopy = false) {
     const title = document.getElementById('product-modal-title');
     const form = document.getElementById('product-form');
     const stockGroup = document.getElementById('prod-stock-group');
@@ -2550,7 +2565,7 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
     populateSuggestions();
     applyProductModalRequiredFieldsUI();
 
-    if (productId) {
+    if (productId && !isCopy) {
         title.textContent = '编辑商品详情';
         if (stockLabel) stockLabel.textContent = '当前库存';
 
@@ -2565,20 +2580,50 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
                 if (p) {
                     document.getElementById('prod-id').value = p.id;
                     document.getElementById('prod-name').value = p.name;
-                    document.getElementById('prod-model').value = p.model;
-                    document.getElementById('prod-spec').value = p.spec;
-                    document.getElementById('prod-barcode').value = p.barcode;
-                    document.getElementById('prod-unit').value = p.unit;
-                    document.getElementById('prod-brand').value = p.brand;
-                    document.getElementById('prod-local').value = p.local;
-                    document.getElementById('prod-price').value = p.price;
-                    document.getElementById('prod-mark').value = p.mark;
+                    document.getElementById('prod-model').value = p.model || '';
+                    document.getElementById('prod-spec').value = p.spec || '';
+                    document.getElementById('prod-barcode').value = p.barcode || '';
+                    document.getElementById('prod-unit').value = p.unit || '';
+                    document.getElementById('prod-brand').value = p.brand || '';
+                    document.getElementById('prod-local').value = p.local || '';
+                    document.getElementById('prod-price').value = p.price || '';
+                    document.getElementById('prod-mark').value = p.mark || '';
 
                     if (stockInput) {
                         stockInput.value = p.stock;
                     }
 
                     loadProductImages(p.id);
+                }
+            });
+    } else if (productId && isCopy) {
+        title.textContent = '复制新增商品';
+        if (stockLabel) stockLabel.textContent = '初始库存';
+        if (stockInput) {
+            stockInput.readOnly = false;
+            stockInput.value = '0';
+        }
+
+        // Fetch original product details directly by ID, populate fields, but clear ID and generate NEW barcode
+        fetch(`api/products.php?id=${productId}`)
+            .then(res => res.json())
+            .then(p => {
+                if (p) {
+                    document.getElementById('prod-id').value = ''; // Ensure ID is empty to trigger POST creation
+                    document.getElementById('prod-name').value = p.name || '';
+                    document.getElementById('prod-model').value = p.model || '';
+                    document.getElementById('prod-spec').value = p.spec || '';
+                    document.getElementById('prod-barcode').value = barcodePreFill || generateUniqueBarcode();
+                    document.getElementById('prod-unit').value = p.unit || '个';
+                    document.getElementById('prod-brand').value = p.brand || '';
+                    document.getElementById('prod-local').value = p.local || '';
+                    document.getElementById('prod-price').value = p.price || '';
+                    document.getElementById('prod-mark').value = p.mark || '';
+
+                    if (stockInput) {
+                        stockInput.value = '0';
+                    }
+                    showToast('已载入原商品信息，并生成新条码');
                 }
             });
     } else {
