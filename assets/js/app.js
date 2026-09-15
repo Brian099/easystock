@@ -69,13 +69,13 @@ function showInstallScreen() {
     document.getElementById('main-screen').classList.remove('active');
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('install-screen').classList.add('active');
-    
+
     // Bind database type switcher radio change
     const sqliteRadio = document.getElementById('db-type-sqlite');
     const mysqlRadio = document.getElementById('db-type-mysql');
     const sqliteBox = document.getElementById('install-sqlite-box');
     const mysqlFields = document.getElementById('install-mysql-fields');
-    
+
     function updateDbTypeUI() {
         const isMysql = mysqlRadio && mysqlRadio.checked;
         if (sqliteBox) sqliteBox.style.display = isMysql ? 'none' : 'block';
@@ -87,12 +87,12 @@ function showInstallScreen() {
             }
         }
     }
-    
+
     if (sqliteRadio && mysqlRadio) {
         sqliteRadio.onchange = updateDbTypeUI;
         mysqlRadio.onchange = updateDbTypeUI;
     }
-    
+
     // Fetch env/prefill configurations
     fetch('api/install.php')
         .then(res => res.json())
@@ -126,13 +126,13 @@ function showMainScreen() {
     document.getElementById('install-screen').classList.remove('active');
     const mainScreen = document.getElementById('main-screen');
     mainScreen.classList.add('active');
-    
+
     // Apply responsive sidebar state (default expanded on desktop >=1200px, default collapsed on tablet 768px-1199px)
     applySidebarState();
-    
+
     // Set username in side drawer
     document.getElementById('drawer-username').textContent = state.user.username;
-    
+
     // Set user role badge
     const roleBadge = document.getElementById('header-user-role');
     const usersCard = document.getElementById('settings-users-card');
@@ -145,10 +145,10 @@ function showMainScreen() {
         roleBadge.className = 'badge badge-secondary';
         if (usersCard) usersCard.classList.add('hidden');
     }
-    
+
     // Load config and suggestions first
     loadSettings();
-    
+
     // Navigate to current hash or dashboard
     const initialView = window.location.hash.substring(1) || 'dashboard';
     navigateTo(initialView);
@@ -165,16 +165,16 @@ function setupRouting() {
 function navigateTo(viewId) {
     const validViews = ['dashboard', 'products', 'logs', 'settings'];
     if (!validViews.includes(viewId)) viewId = 'dashboard';
-    
+
     state.currentView = viewId;
-    
+
     // Toggle active classes on view containers
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
     });
     const activeView = document.getElementById(`view-${viewId}`);
     if (activeView) activeView.classList.add('active');
-    
+
     // Toggle active states on menus and docks
     document.querySelectorAll('.nav-item, .dock-item').forEach(item => {
         if (item.getAttribute('data-target') === viewId) {
@@ -183,10 +183,10 @@ function navigateTo(viewId) {
             item.classList.remove('active');
         }
     });
-    
+
     // Close mobile side drawer if open
     closeDrawer();
-    
+
     // Trigger data loading for the specific view
     loadViewData(viewId);
 }
@@ -214,7 +214,7 @@ function loadViewData(viewId) {
 function applySidebarState() {
     const mainScreen = document.getElementById('main-screen');
     if (!mainScreen) return;
-    
+
     const width = window.innerWidth;
     if (width >= 1200) {
         // PC / Large Screen (>= 1200px): Default EXPANDED
@@ -245,10 +245,10 @@ function setupNavigation() {
     const drawerOverlay = document.getElementById('drawer-overlay');
     const drawer = document.getElementById('app-drawer');
     const mainScreen = document.getElementById('main-screen');
-    
+
     // Initial check for responsive sidebar state
     applySidebarState();
-    
+
     const toggleSidebar = () => {
         const width = window.innerWidth;
         if (width >= 768) {
@@ -268,11 +268,11 @@ function setupNavigation() {
             drawerOverlay.classList.toggle('active');
         }
     };
-    
+
     if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
     if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
     if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
-    
+
     // Listen for window resize to handle drawer/sidebar state correctly
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 768) {
@@ -280,7 +280,7 @@ function setupNavigation() {
         }
         applySidebarState();
     });
-    
+
     // Handle logout
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
@@ -324,17 +324,17 @@ function loadSettings() {
         .then(data => {
             state.settings = data.settings || {};
             state.suggestions = data.suggestions || {};
-            
+
             // Update top header title with company name
             updateHeaderBranding(state.settings.companyName);
 
             // Populate combobox options and filters
             populateSuggestions();
-            
+
             // Apply setting inputs on Settings view
             const allowEdit = document.getElementById('setting-allow-edit');
             if (allowEdit) allowEdit.checked = (state.settings.allowEditStock === 'true');
-            
+
             const companyInput = document.getElementById('setting-company-name');
             if (companyInput) companyInput.value = state.settings.companyName || '';
 
@@ -355,15 +355,15 @@ function loadSettings() {
             const isAdmin = (state.user && state.user.role === 'admin');
             if (allowEdit) allowEdit.disabled = !isAdmin;
             if (companyInput) companyInput.disabled = !isAdmin;
-            
+
             document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]').forEach(chk => {
                 chk.disabled = !isAdmin;
             });
-            
+
             document.querySelectorAll('#setting-required-fields-list input[name="product-required-fields"]').forEach(chk => {
                 chk.disabled = !isAdmin;
             });
-            
+
             const saveBtn = document.querySelector('#global-settings-form button[type="submit"]');
             if (saveBtn) {
                 if (isAdmin) {
@@ -399,17 +399,17 @@ function applySettingsRequiredFieldsUI(requiredFieldsStr) {
 
 function applyProductModalRequiredFieldsUI(requiredFieldsStr = null) {
     const reqStr = (requiredFieldsStr !== null && requiredFieldsStr !== undefined)
-        ? requiredFieldsStr 
+        ? requiredFieldsStr
         : (state.settings?.requiredProductFields !== undefined ? state.settings.requiredProductFields : 'name');
-    
+
     const reqList = reqStr.split(',').map(s => s.trim()).filter(Boolean);
     const allFields = ['name', 'model', 'spec', 'barcode', 'unit', 'brand', 'local', 'price', 'mark'];
-    
+
     allFields.forEach(field => {
         const isReq = reqList.includes(field);
         const label = document.querySelector(`label[data-field-label="${field}"]`);
         const input = document.querySelector(`input[data-field-input="${field}"]`);
-        
+
         if (label) {
             const star = label.querySelector('.req-star');
             if (star) {
@@ -420,7 +420,7 @@ function applyProductModalRequiredFieldsUI(requiredFieldsStr = null) {
                 }
             }
         }
-        
+
         if (input) {
             input.required = isReq;
         }
@@ -433,7 +433,7 @@ function updateSearchChipsUI() {
         const field = chip.getAttribute('data-field');
         const isActive = state.activeSearchFields.includes(field);
         const icon = chip.querySelector('.chip-icon');
-        
+
         if (isActive) {
             chip.classList.add('active');
             chip.classList.remove('disabled');
@@ -468,7 +468,7 @@ function populateSuggestions() {
         });
         brandFilter.value = currentBrandVal;
     }
-    
+
     // Populate local filter options
     const localFilter = document.getElementById('product-filter-local');
     if (localFilter) {
@@ -493,8 +493,8 @@ function renderComboboxDropdown(menuId, inputId, items) {
         menu.innerHTML = '';
         const search = (filterVal || '').trim().toLowerCase();
         // If not typing (e.g. click/focus/toggle), show ALL items; if typing, filter items
-        const filtered = (!isTyping || search === '') 
-            ? items 
+        const filtered = (!isTyping || search === '')
+            ? items
             : items.filter(item => item.toLowerCase().includes(search));
 
         if (filtered.length === 0) {
@@ -555,11 +555,11 @@ function setupForms() {
             const submitBtn = document.getElementById('install-submit-btn');
             const errorDiv = document.getElementById('install-error');
             const loadingDiv = document.getElementById('install-loading');
-            
+
             errorDiv.classList.add('hidden');
             loadingDiv.classList.remove('hidden');
             submitBtn.disabled = true;
-            
+
             const dbType = document.querySelector('input[name="install-db-type"]:checked')?.value || 'sqlite';
             const payload = {
                 db_type: dbType,
@@ -574,32 +574,32 @@ function setupForms() {
                 payload.db_user = document.getElementById('install-db-user')?.value || 'root';
                 payload.db_pass = document.getElementById('install-db-pass')?.value || '';
             }
-            
+
             fetch('api/install.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(res => {
-                loadingDiv.classList.add('hidden');
-                submitBtn.disabled = false;
-                if (!res.ok) {
-                    return res.json().then(err => { throw new Error(err.error || '安装失败'); });
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    showToast('系统安装并初始化成功！');
-                    checkAuthStatus();
-                }
-            })
-            .catch(err => {
-                loadingDiv.classList.add('hidden');
-                submitBtn.disabled = false;
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-            });
+                .then(res => {
+                    loadingDiv.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.error || '安装失败'); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast('系统安装并初始化成功！');
+                        checkAuthStatus();
+                    }
+                })
+                .catch(err => {
+                    loadingDiv.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    errorDiv.textContent = err.message;
+                    errorDiv.classList.remove('hidden');
+                });
         });
     }
 
@@ -610,35 +610,35 @@ function setupForms() {
         const username = document.getElementById('login-username').value;
         const password = document.getElementById('login-password').value;
         const loginError = document.getElementById('login-error');
-        
+
         loginError.classList.add('hidden');
-        
+
         fetch('api/auth.php?action=login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         })
-        .then(res => {
-            if (!res.ok) {
-                return res.json().then(err => { throw new Error(err.error || '登录失败'); });
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data.success) {
-                state.user = data.user;
-                showToast('登录成功');
-                showMainScreen();
-                // Clear form
-                loginForm.reset();
-            }
-        })
-        .catch(err => {
-            loginError.textContent = err.message;
-            loginError.classList.remove('hidden');
-        });
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.error || '登录失败'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    state.user = data.user;
+                    showToast('登录成功');
+                    showMainScreen();
+                    // Clear form
+                    loginForm.reset();
+                }
+            })
+            .catch(err => {
+                loginError.textContent = err.message;
+                loginError.classList.remove('hidden');
+            });
     });
-    
+
     // B. Product Form
     const productForm = document.getElementById('product-form');
     productForm.addEventListener('submit', async (e) => {
@@ -646,7 +646,7 @@ function setupForms() {
         const prodId = document.getElementById('prod-id').value;
         const submitBtn = productForm.querySelector('button[type="submit"]');
         const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '保存';
-        
+
         const payload = {
             name: document.getElementById('prod-name').value.trim(),
             model: document.getElementById('prod-model').value.trim(),
@@ -658,7 +658,7 @@ function setupForms() {
             price: document.getElementById('prod-price').value.trim(),
             mark: document.getElementById('prod-mark').value.trim()
         };
-        
+
         // Frontend required validation based on active setting
         const reqStr = state.settings?.requiredProductFields !== undefined ? state.settings.requiredProductFields : 'name';
         const reqList = reqStr.split(',').map(s => s.trim()).filter(Boolean);
@@ -673,7 +673,7 @@ function setupForms() {
             price: '价格/单价',
             mark: '备注'
         };
-        
+
         for (const f of reqList) {
             if (fieldTitles[f] && (!payload[f] || payload[f] === '')) {
                 showToast(`【${fieldTitles[f]}】为必填项，请输入后再提交`);
@@ -682,15 +682,15 @@ function setupForms() {
                 return;
             }
         }
-        
+
         const stockVal = document.getElementById('prod-stock').value;
         if (stockVal !== '') {
             payload.stock = stockVal;
         }
-        
+
         const url = prodId ? `api/products.php?id=${prodId}` : 'api/products.php';
         const method = prodId ? 'PUT' : 'POST';
-        
+
         try {
             if (submitBtn) {
                 submitBtn.disabled = true;
@@ -718,7 +718,7 @@ function setupForms() {
             if (!prodId && newId && typeof pendingProductImages !== 'undefined' && pendingProductImages.length > 0) {
                 const totalImgs = pendingProductImages.length;
                 showToast(`商品创建成功，正在自动上传 ${totalImgs} 张图片...`);
-                
+
                 for (const item of pendingProductImages) {
                     try {
                         const processedBlob = item.processedBlob || await compressAndNormalizeImage(item.file, 1600, 0.85);
@@ -727,7 +727,7 @@ function setupForms() {
                         const originalName = item.file.name || 'photo';
                         const baseName = originalName.replace(/\.[^/.]+$/, "");
                         formData.append('image', processedBlob, `${baseName}.jpg`);
-                        
+
                         await fetch('api/products.php?action=upload_image', {
                             method: 'POST',
                             body: formData
@@ -754,7 +754,7 @@ function setupForms() {
             }
         }
     });
-    
+
     // C. Quick Transaction Form (Manual in/out/re log)
     const quickTxnForm = document.getElementById('quick-txn-form');
     quickTxnForm.addEventListener('submit', (e) => {
@@ -764,35 +764,35 @@ function setupForms() {
             showToast('请先选择要操作的出入库商品！');
             return;
         }
-        
+
         const payload = {
             product_id: prodId,
             type: document.querySelector('input[name="txn-type"]:checked').value,
             quantity: document.getElementById('txn-quantity').value,
             mark: document.getElementById('txn-mark').value
         };
-        
+
         fetch('api/stock.php?action=log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(res => {
-            if (!res.ok) {
-                return res.json().then(err => { throw new Error(err.error); });
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data.success) {
-                showToast('库存操作记录成功');
-                closeModal('quick-transaction-modal');
-                loadViewData(state.currentView);
-            }
-        })
-        .catch(err => showToast(err.message));
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.error); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showToast('库存操作记录成功');
+                    closeModal('quick-transaction-modal');
+                    loadViewData(state.currentView);
+                }
+            })
+            .catch(err => showToast(err.message));
     });
-    
+
     // D. Global Rules Settings
     const settingsForm = document.getElementById('global-settings-form');
     if (settingsForm) {
@@ -800,7 +800,7 @@ function setupForms() {
             e.preventDefault();
             const allowEdit = document.getElementById('setting-allow-edit').checked ? 'true' : 'false';
             const companyName = (document.getElementById('setting-company-name')?.value || '').trim();
-            
+
             // Gather selected default search fields
             const selectedFields = [];
             document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]:checked').forEach(cb => {
@@ -825,25 +825,25 @@ function setupForms() {
                     requiredProductFields: requiredProductFields
                 })
             })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(err => { throw new Error(err.error); });
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    state.settings = data.settings;
-                    updateHeaderBranding(state.settings.companyName);
-                    applyProductModalRequiredFieldsUI(state.settings.requiredProductFields);
-                    showToast('系统设置已保存');
-                    loadSettings();
-                }
-            })
-            .catch((err) => showToast(err.message || '无法保存设置'));
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.error); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        state.settings = data.settings;
+                        updateHeaderBranding(state.settings.companyName);
+                        applyProductModalRequiredFieldsUI(state.settings.requiredProductFields);
+                        showToast('系统设置已保存');
+                        loadSettings();
+                    }
+                })
+                .catch((err) => showToast(err.message || '无法保存设置'));
         });
     }
-    
+
     // E. Change Password
     const changePassForm = document.getElementById('change-password-form');
     changePassForm.addEventListener('submit', (e) => {
@@ -852,32 +852,32 @@ function setupForms() {
         const new_password = document.getElementById('new-pass').value;
         const passSuccess = document.getElementById('pass-success');
         const passError = document.getElementById('pass-error');
-        
+
         passSuccess.classList.add('hidden');
         passError.classList.add('hidden');
-        
+
         fetch('api/auth.php?action=change_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ old_password, new_password })
         })
-        .then(res => {
-            if (!res.ok) {
-                return res.json().then(err => { throw new Error(err.error); });
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data.success) {
-                passSuccess.textContent = '密码修改成功！';
-                passSuccess.classList.remove('hidden');
-                changePassForm.reset();
-            }
-        })
-        .catch(err => {
-            passError.textContent = err.message;
-            passError.classList.remove('hidden');
-        });
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.error); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    passSuccess.textContent = '密码修改成功！';
+                    passSuccess.classList.remove('hidden');
+                    changePassForm.reset();
+                }
+            })
+            .catch(err => {
+                passError.textContent = err.message;
+                passError.classList.remove('hidden');
+            });
     });
 
     // F. User Form (Create/Edit)
@@ -919,20 +919,20 @@ function setupForms() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(err => { throw new Error(err.error || '保存失败'); });
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    showToast(userId ? '修改账户成功' : '新增账号成功');
-                    closeModal('user-modal');
-                    loadUsersList();
-                }
-            })
-            .catch(err => showToast(err.message));
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.error || '保存失败'); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast(userId ? '修改账户成功' : '新增账号成功');
+                        closeModal('user-modal');
+                        loadUsersList();
+                    }
+                })
+                .catch(err => showToast(err.message));
         });
     }
 }
@@ -1049,31 +1049,31 @@ function loadDashboardMetrics() {
             document.getElementById('metric-total-qty').textContent = data.total_stock_qty;
             document.getElementById('metric-low-stock').textContent = data.low_stock_count;
         });
-        
+
     // Load recent activities
     fetch('api/stock.php?limit=5')
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('dashboard-recent-logs');
             container.innerHTML = '';
-            
+
             if (data.logs.length === 0) {
                 container.innerHTML = '<div class="loading-spinner">暂无库存变更历史</div>';
                 return;
             }
-            
+
             data.logs.forEach(log => {
                 const item = document.createElement('div');
                 item.className = 'activity-item';
-                
+
                 const meta = getLogTypeMeta(log.type, log.quantity, log.mark);
-                
+
                 // Formulate description
                 let detailsStr = log.history_name;
                 if (log.history_model) {
                     detailsStr += ` (${log.history_model})`;
                 }
-                
+
                 item.innerHTML = `
                     <div class="activity-main">
                         <div class="act-type-badge ${meta.badgeClass}"><i class="fa-solid ${meta.iconClass}"></i></div>
@@ -1098,14 +1098,14 @@ function loadProductsList() {
     const local = document.getElementById('product-filter-local').value;
     const page = state.productsPagination.page;
     const searchFieldsParam = (state.activeSearchFields || []).join(',');
-    
+
     let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}`;
-    
+
     // Check if we reached this via low-stock warning card
     if (state.filterLowStockOnly) {
         url += '&low_stock=1';
     }
-    
+
     fetch(url)
         .then(res => {
             if (res.status === 503) {
@@ -1125,24 +1125,24 @@ function loadProductsList() {
             state.currentProducts = {};
             const container = document.getElementById('products-list-container');
             container.innerHTML = '';
-            
+
             if (data.products.length === 0) {
                 container.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-box-open" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5;"></i><br>暂无商品数据，点击右上角「新增商品」即可添加</div>';
                 document.getElementById('products-pagination').innerHTML = '';
                 return;
             }
-            
+
             // 1. Mobile Card List Layout
             const cardWrapper = document.createElement('div');
             cardWrapper.className = 'products-card-list mobile-only';
-            
+
             // 2. Desktop/Tablet Table Layout
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-responsive glass desktop-only';
-            
+
             const table = document.createElement('table');
             table.className = 'product-table';
-            
+
             table.innerHTML = `
                 <thead>
                     <tr>
@@ -1159,9 +1159,9 @@ function loadProductsList() {
                 </thead>
                 <tbody></tbody>
             `;
-            
+
             const tbody = table.querySelector('tbody');
-            
+
             data.products.forEach(p => {
                 state.currentProducts[p.id] = p;
 
@@ -1172,30 +1172,30 @@ function loadProductsList() {
                 } else if (parseInt(p.stock) <= 2) {
                     stockClass = 'status-warn';
                 }
-                
+
                 // Model and Spec strings
                 let metaSub = '';
                 if (p.model || p.spec) {
                     metaSub = [p.model, p.spec].filter(Boolean).join(' / ');
                 }
-                
+
                 // --- RENDER TABLE ROW (DESKTOP) ---
                 const tr = document.createElement('tr');
                 tr.className = 'product-table-row product-row-clickable';
                 tr.setAttribute('data-id', p.id);
                 tr.setAttribute('title', '点击展开 / 收起商品详情');
-                
+
                 // Image or icon fallback
                 let tableImgHtml = '<i class="fa-solid fa-cube" style="font-size: 20px; color: var(--text-light);"></i>';
                 if (p.image) {
                     tableImgHtml = `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="table-thumb" style="width: 36px; height: 36px; object-fit: cover; border-radius: var(--border-radius-sm); cursor: pointer;">`;
                 }
-                
+
                 let tableDeleteActionHtml = '';
                 if (state.user && state.user.role === 'admin') {
                     tableDeleteActionHtml = `<button class="btn btn-sm btn-secondary delete-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px; color: var(--danger-color); background: var(--danger-light);"><i class="fa-solid fa-trash-can"></i> 删除</button>`;
                 }
-                
+
                 tr.innerHTML = `
                     <td style="text-align: center; vertical-align: middle; padding: 0 4px;">
                         <span class="expand-toggle-icon"><i class="fa-solid fa-chevron-right"></i></span>
@@ -1247,22 +1247,22 @@ function loadProductsList() {
 
                 tbody.appendChild(tr);
                 tbody.appendChild(expandTr);
-                
+
                 // --- RENDER COMPACT CARD (MOBILE) ---
                 const card = document.createElement('div');
                 card.className = 'compact-product-card glass';
                 card.setAttribute('data-id', p.id);
-                
+
                 let cardImgHtml = '<i class="fa-solid fa-cube" style="font-size: 18px; color: var(--text-light);"></i>';
                 if (p.image) {
                     cardImgHtml = `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="table-thumb" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; cursor: pointer;">`;
                 }
-                
+
                 let cardDeleteActionHtml = '';
                 if (state.user && state.user.role === 'admin') {
                     cardDeleteActionHtml = `<button class="btn-icon delete-item-btn" data-id="${p.id}" style="background: var(--danger-light); color: var(--danger-color);"><i class="fa-solid fa-trash-can"></i></button>`;
                 }
-                
+
                 card.innerHTML = `
                     <div class="compact-product-card-header" data-id="${p.id}">
                         <div class="card-thumb-area" style="width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.02); border-radius: 6px; overflow: hidden; flex-shrink: 0;">
@@ -1294,17 +1294,17 @@ function loadProductsList() {
                 `;
                 cardWrapper.appendChild(card);
             });
-            
+
             tableWrapper.appendChild(table);
             container.appendChild(cardWrapper);
             container.appendChild(tableWrapper);
-            
+
             // Render pagination controls
             renderPagination('products-pagination', state.productsPagination, (targetPage) => {
                 state.productsPagination.page = targetPage;
                 loadProductsList();
             });
-            
+
             // Attach card & accordion events
             attachProductCardEvents();
         })
@@ -1328,7 +1328,7 @@ function escapeHtml(str) {
 
 function buildProductDetailPanelHtml(p, prefix = 'desktop') {
     const metaSub = [p.model, p.spec].filter(Boolean).join(' / ') || '--';
-    const barcodeHtml = p.barcode 
+    const barcodeHtml = p.barcode
         ? `<span>${escapeHtml(p.barcode)}</span> <button type="button" class="btn-copy-mini copy-barcode-btn" data-barcode="${escapeHtml(p.barcode)}" title="复制条码"><i class="fa-regular fa-copy"></i> 复制</button>`
         : '<span style="color: var(--text-light); font-weight: normal;">无条码</span>';
 
@@ -1392,7 +1392,7 @@ function toggleProductDetail(productId, isMobile = false) {
         const tr = document.querySelector(`.product-table-row[data-id="${productId}"]`);
         const expandTr = document.querySelector(`tr[data-expand-for="${productId}"]`);
         const container = document.getElementById(`expand-content-desktop-${productId}`);
-        
+
         if (!tr || !expandTr || !container) return;
 
         const isCurrentlyExpanded = tr.classList.contains('is-expanded');
@@ -1411,7 +1411,7 @@ function toggleProductDetail(productId, isMobile = false) {
         if (!isCurrentlyExpanded) {
             tr.classList.add('is-expanded');
             expandTr.style.display = 'table-row';
-            
+
             // Populate content if not already populated
             if (!container.hasChildNodes() || container.innerHTML.trim() === '') {
                 container.innerHTML = buildProductDetailPanelHtml(p, 'desktop');
@@ -1423,7 +1423,7 @@ function toggleProductDetail(productId, isMobile = false) {
         // Mobile Card Toggle
         const card = document.querySelector(`.compact-product-card[data-id="${productId}"]`);
         const body = document.getElementById(`expand-content-mobile-${productId}`);
-        
+
         if (!card || !body) return;
 
         const isCurrentlyExpanded = card.classList.contains('is-expanded');
@@ -1442,7 +1442,7 @@ function toggleProductDetail(productId, isMobile = false) {
         if (!isCurrentlyExpanded) {
             card.classList.add('is-expanded');
             body.style.display = 'flex';
-            
+
             // Populate content if not already populated
             if (!body.hasChildNodes() || body.innerHTML.trim() === '') {
                 body.innerHTML = buildProductDetailPanelHtml(p, 'mobile');
@@ -1588,7 +1588,7 @@ function attachProductCardEvents() {
             openQuickTransactionModal(id);
         });
     });
-    
+
     // Edit item details
     document.querySelectorAll('.edit-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1597,7 +1597,7 @@ function attachProductCardEvents() {
             openProductFormModal(id);
         });
     });
-    
+
     // Delete item
     document.querySelectorAll('.delete-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1630,19 +1630,19 @@ function attachProductCardEvents() {
 function renderPagination(elementId, pagination, onPageClick) {
     const container = document.getElementById(elementId);
     container.innerHTML = '';
-    
+
     const curr = pagination.current_page;
     const tot = pagination.total_pages;
-    
+
     if (tot <= 1) return; // No pagination needed
-    
+
     // Prev button
     const prevBtn = document.createElement('button');
     prevBtn.className = `page-btn ${curr === 1 ? 'disabled' : ''}`;
     prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
     prevBtn.addEventListener('click', () => onPageClick(curr - 1));
     container.appendChild(prevBtn);
-    
+
     // Pages
     for (let i = 1; i <= tot; i++) {
         // Show truncated pages on mobile to save space
@@ -1660,14 +1660,14 @@ function renderPagination(elementId, pagination, onPageClick) {
                 continue;
             }
         }
-        
+
         const btn = document.createElement('button');
         btn.className = `page-btn ${curr === i ? 'active' : ''}`;
         btn.textContent = i;
         btn.addEventListener('click', () => onPageClick(i));
         container.appendChild(btn);
     }
-    
+
     // Next button
     const nextBtn = document.createElement('button');
     nextBtn.className = `page-btn ${curr === tot ? 'disabled' : ''}`;
@@ -1682,7 +1682,7 @@ function setupSearchFilters() {
         state.filterLowStockOnly = true;
         window.location.hash = '#products';
     });
-    
+
     // Dashboard search input redirects to Products tab and executes search
     const dashboardSearch = document.getElementById('dashboard-search-input');
     if (dashboardSearch) {
@@ -1693,11 +1693,11 @@ function setupSearchFilters() {
                 productSearch.value = query;
                 state.filterLowStockOnly = false; // Reset low stock filter
                 window.location.hash = '#products';
-                
+
                 // Trigger products list load
                 state.productsPagination.page = 1;
                 loadProductsList();
-                
+
                 // Set cursor focus and selection to end of input
                 setTimeout(() => {
                     productSearch.focus();
@@ -1709,7 +1709,7 @@ function setupSearchFilters() {
             e.target.value = '';
         });
     }
-    
+
     // Search Source Chips: Toggle fields and automatically trigger search
     const chipsContainer = document.getElementById('search-source-chips');
     if (chipsContainer) {
@@ -1747,18 +1747,18 @@ function setupSearchFilters() {
             loadProductsList();
         }, 400);
     });
-    
+
     // Filters selection
     document.getElementById('product-filter-brand').addEventListener('change', () => {
         state.productsPagination.page = 1;
         loadProductsList();
     });
-    
+
     document.getElementById('product-filter-local').addEventListener('change', () => {
         state.productsPagination.page = 1;
         loadProductsList();
     });
-    
+
     // Logs Search/Filter
     const logSearchInput = document.getElementById('log-search-input');
     logSearchInput.addEventListener('input', () => {
@@ -1768,7 +1768,7 @@ function setupSearchFilters() {
             loadLogsList();
         }, 400);
     });
-    
+
     document.getElementById('log-filter-type').addEventListener('change', () => {
         state.logsPagination.page = 1;
         loadLogsList();
@@ -1779,10 +1779,10 @@ function setupSearchFilters() {
         pill.addEventListener('click', (e) => {
             document.querySelectorAll('.logs-date-bar .date-pill').forEach(p => p.classList.remove('active'));
             e.currentTarget.classList.add('active');
-            
+
             const range = e.currentTarget.getAttribute('data-range');
             setLogDateRange(range);
-            
+
             state.logsPagination.page = 1;
             loadLogsList();
         });
@@ -1825,7 +1825,7 @@ function setLogDateRange(rangeKey) {
     if (!startDateInput || !endDateInput) return;
 
     const now = new Date();
-    
+
     if (rangeKey === 'all') {
         startDateInput.value = '';
         endDateInput.value = '';
@@ -1864,37 +1864,37 @@ function loadLogsList() {
     const startDate = document.getElementById('log-start-date')?.value || '';
     const endDate = document.getElementById('log-end-date')?.value || '';
     const page = state.logsPagination.page;
-    
+
     fetch(`api/stock.php?page=${page}&limit=20&search=${encodeURIComponent(search)}&type=${type}&start_date=${startDate}&end_date=${endDate}`)
         .then(res => res.json())
         .then(data => {
             state.logsPagination = data.pagination;
             const container = document.getElementById('logs-timeline-container');
             container.innerHTML = '';
-            
+
             if (data.logs.length === 0) {
                 container.innerHTML = '<div class="loading-spinner">没有找到库存流转日志</div>';
                 document.getElementById('logs-pagination').innerHTML = '';
                 return;
             }
-            
+
             data.logs.forEach(log => {
                 const card = document.createElement('div');
                 const meta = getLogTypeMeta(log.type, log.quantity, log.mark);
-                
+
                 const typeClass = meta.typeClass;
                 const typeStr = meta.typeStr;
                 const tagClass = meta.tagClass;
                 const qtySigned = meta.signedStr;
                 const qtyClass = meta.qtyClass;
-                
+
                 card.className = `timeline-card ${typeClass}`;
-                
+
                 let prodDetails = log.history_name;
                 if (log.history_model) {
                     prodDetails += ` (${log.history_model})`;
                 }
-                
+
                 card.innerHTML = `
                     <div class="timeline-header">
                         <div class="timeline-tag-area">
@@ -1912,7 +1912,7 @@ function loadLogsList() {
                 `;
                 container.appendChild(card);
             });
-            
+
             // Render pagination controls
             renderPagination('logs-pagination', state.logsPagination, (targetPage) => {
                 state.logsPagination.page = targetPage;
@@ -2004,45 +2004,45 @@ function setupModals() {
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.json())
-            .then(data => {
-                if (importSubmitBtn) {
-                    importSubmitBtn.disabled = false;
-                    importSubmitBtn.innerHTML = '<i class="fa-solid fa-upload"></i> 开始导入';
-                }
-
-                if (data.success) {
-                    if (importResultBox) {
-                        let msg = `<strong><i class="fa-solid fa-circle-check"></i> ${escapeHtml(data.message)}</strong>`;
-                        if (data.errors && data.errors.length > 0) {
-                            msg += `<ul style="margin-top: 8px; padding-left: 18px; font-size: 12px;">` +
-                                data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('') + `</ul>`;
-                        }
-                        importResultBox.innerHTML = msg;
-                        importResultBox.classList.remove('hidden');
+                .then(res => res.json())
+                .then(data => {
+                    if (importSubmitBtn) {
+                        importSubmitBtn.disabled = false;
+                        importSubmitBtn.innerHTML = '<i class="fa-solid fa-upload"></i> 开始导入';
                     }
-                    showToast('商品导入成功！');
-                    loadProductsList();
-                    loadSettings(); // refresh unit/brand presets if updated
-                } else {
+
+                    if (data.success) {
+                        if (importResultBox) {
+                            let msg = `<strong><i class="fa-solid fa-circle-check"></i> ${escapeHtml(data.message)}</strong>`;
+                            if (data.errors && data.errors.length > 0) {
+                                msg += `<ul style="margin-top: 8px; padding-left: 18px; font-size: 12px;">` +
+                                    data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('') + `</ul>`;
+                            }
+                            importResultBox.innerHTML = msg;
+                            importResultBox.classList.remove('hidden');
+                        }
+                        showToast('商品导入成功！');
+                        loadProductsList();
+                        loadSettings(); // refresh unit/brand presets if updated
+                    } else {
+                        if (importErrorBox) {
+                            importErrorBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(data.error || '导入失败')}`;
+                            importErrorBox.classList.remove('hidden');
+                        }
+                        showToast(data.error || '导入失败');
+                    }
+                })
+                .catch(err => {
+                    if (importSubmitBtn) {
+                        importSubmitBtn.disabled = false;
+                        importSubmitBtn.innerHTML = '<i class="fa-solid fa-upload"></i> 开始导入';
+                    }
                     if (importErrorBox) {
-                        importErrorBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(data.error || '导入失败')}`;
+                        importErrorBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> 请求异常: ${escapeHtml(err.message || '网络或服务端错误')}`;
                         importErrorBox.classList.remove('hidden');
                     }
-                    showToast(data.error || '导入失败');
-                }
-            })
-            .catch(err => {
-                if (importSubmitBtn) {
-                    importSubmitBtn.disabled = false;
-                    importSubmitBtn.innerHTML = '<i class="fa-solid fa-upload"></i> 开始导入';
-                }
-                if (importErrorBox) {
-                    importErrorBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> 请求异常: ${escapeHtml(err.message || '网络或服务端错误')}`;
-                    importErrorBox.classList.remove('hidden');
-                }
-                showToast('导入请求失败');
-            });
+                    showToast('导入请求失败');
+                });
         });
     }
 
@@ -2086,7 +2086,7 @@ function setupModals() {
             openQuickTransactionModal(null, 'out');
         });
     }
-    
+
     // Close Modals buttons triggers
     document.querySelectorAll('.modal-close, .modal-cancel-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -2094,7 +2094,7 @@ function setupModals() {
             if (modal) closeModal(modal.id);
         });
     });
-    
+
     // Segment controller actions for txn modal (updates submit button text)
     const quickTxnSubmit = document.getElementById('quick-txn-submit-btn');
     document.querySelectorAll('input[name="txn-type"]').forEach(radio => {
@@ -2112,37 +2112,37 @@ function setupModals() {
             }
         });
     });
-    
+
     // Image Upload triggers
     const trigger = document.getElementById('image-upload-trigger-area');
     const fileInput = document.getElementById('image-file-input');
     const cameraTrigger = document.getElementById('camera-upload-trigger-area');
     const cameraInput = document.getElementById('camera-file-input');
-    
+
     if (trigger && fileInput) {
         trigger.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', () => handleImageInputSelection(fileInput));
     }
-    
+
     if (cameraTrigger && cameraInput) {
         cameraTrigger.addEventListener('click', () => cameraInput.click());
         cameraInput.addEventListener('change', () => handleImageInputSelection(cameraInput));
     }
-    
+
     // Scanner simulation actions
     const scanBarcodeBtn = document.getElementById('scan-barcode-btn');
     const shortcutScanBtn = document.getElementById('barcode-scan-shortcut');
     const quickScanBtn = document.getElementById('quick-scan-btn');
-    
+
     // Save target elements where barcode should go
     let scanTargetInput = null;
-    
+
     const openScanner = (targetInput) => {
         scanTargetInput = targetInput;
         openModal('barcode-scan-modal');
         document.getElementById('simulated-barcode-val').value = '';
     };
-    
+
     const generateBarcodeBtn = document.getElementById('generate-barcode-btn');
     if (generateBarcodeBtn) {
         generateBarcodeBtn.addEventListener('click', () => {
@@ -2160,28 +2160,28 @@ function setupModals() {
             openScanner(document.getElementById('prod-barcode'));
         });
     }
-    
+
     if (shortcutScanBtn) {
         shortcutScanBtn.addEventListener('click', () => {
             openScanner(document.getElementById('product-search-input'));
         });
     }
-    
+
     if (quickScanBtn) {
         quickScanBtn.addEventListener('click', () => {
             openScanner(null); // Direct dashboard lookup
         });
     }
-    
+
     document.getElementById('simulated-scan-confirm-btn').addEventListener('click', () => {
         const barcode = document.getElementById('simulated-barcode-val').value.trim();
         if (!barcode) {
             showToast('请输入模拟条码进行扫描');
             return;
         }
-        
+
         closeModal('barcode-scan-modal');
-        
+
         if (scanTargetInput) {
             scanTargetInput.value = barcode;
             // trigger input event in search
@@ -2217,19 +2217,19 @@ function setupModals() {
     // Barcode batch maintenance actions
     const checkBarcodesBtn = document.getElementById('btn-check-barcodes');
     const fillBarcodesBtn = document.getElementById('btn-fill-barcodes');
-    
+
     if (checkBarcodesBtn) {
         checkBarcodesBtn.addEventListener('click', () => {
             loadBarcodeStats(true);
         });
     }
-    
+
     if (fillBarcodesBtn) {
         fillBarcodesBtn.addEventListener('click', () => {
             if (confirm('确认一键为系统中所有缺失条码的商品自动生成标准 EAN-13 格式条形码吗？')) {
                 fillBarcodesBtn.disabled = true;
                 fillBarcodesBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在批量生成补全中...';
-                
+
                 fetch('api/fill_barcodes.php?action=execute', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
@@ -2256,14 +2256,14 @@ function loadBarcodeStats(notify = false) {
     const badge = document.getElementById('barcode-stats-badge');
     const card = document.getElementById('settings-barcodes-card');
     if (!badge) return;
-    
+
     if (state.user && state.user.role === 'admin') {
         if (card) card.classList.remove('hidden');
     } else {
         if (card) card.classList.add('hidden');
         return;
     }
-    
+
     fetch('api/fill_barcodes.php?action=check')
         .then(res => res.json())
         .then(data => {
@@ -2405,7 +2405,7 @@ function clearPendingProductImages() {
 
 async function addPendingProductImage(file) {
     if (!file || !file.type || !file.type.startsWith('image/')) return;
-    
+
     // Normalize image to SDR canvas first to strip Apple HDR Gain Map / Ultra HDR
     // This prevents mobile screen brightness jumping / flickering when preview is displayed
     const processedBlob = await compressAndNormalizeImage(file, 1600, 0.85);
@@ -2413,11 +2413,11 @@ async function addPendingProductImage(file) {
     const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
     const item = { id: tempId, file: file, processedBlob: processedBlob, previewUrl: previewUrl };
     pendingProductImages.push(item);
-    
+
     const container = document.getElementById('product-images-list');
     if (!container) return;
     const firstTrigger = document.getElementById('image-upload-trigger-area');
-    
+
     const div = document.createElement('div');
     div.className = 'image-preview-item';
     div.setAttribute('data-temp-id', tempId);
@@ -2425,18 +2425,18 @@ async function addPendingProductImage(file) {
         <img src="${previewUrl}" alt="待上传图片" style="cursor: pointer;" title="点击放大预览">
         <button type="button" class="del-img-btn" title="删除此图片"><i class="fa-solid fa-xmark"></i></button>
     `;
-    
+
     div.querySelector('img').addEventListener('click', () => {
         openGalleryModal(null, previewUrl);
     });
-    
+
     div.querySelector('.del-img-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         URL.revokeObjectURL(previewUrl);
         pendingProductImages = pendingProductImages.filter(p => p.id !== tempId);
         div.remove();
     });
-    
+
     if (firstTrigger) {
         container.insertBefore(div, firstTrigger);
     } else {
@@ -2450,7 +2450,7 @@ async function handleImageInputSelection(inputEl) {
     const prodId = document.getElementById('prod-id').value;
     const files = Array.from(inputEl.files);
     inputEl.value = ''; // clear input so change event triggers again if same file is picked
-    
+
     // 1. If in New Product mode (no prodId yet), normalize and stage images locally
     if (!prodId) {
         for (const file of files) {
@@ -2464,7 +2464,7 @@ async function handleImageInputSelection(inputEl) {
     if (isUploadingImage) return;
     isUploadingImage = true;
     showToast(files.length > 1 ? `正在处理并上传 ${files.length} 张图片...` : '正在处理并上传图片...');
-    
+
     try {
         for (const file of files) {
             const processedBlob = await compressAndNormalizeImage(file, 1600, 0.85);
@@ -2474,7 +2474,7 @@ async function handleImageInputSelection(inputEl) {
             const originalName = file.name || 'photo';
             const baseName = originalName.replace(/\.[^/.]+$/, "");
             formData.append('image', processedBlob, `${baseName}.jpg`);
-            
+
             const res = await fetch('api/products.php?action=upload_image', {
                 method: 'POST',
                 body: formData
@@ -2490,7 +2490,7 @@ async function handleImageInputSelection(inputEl) {
                 throw new Error(data.error || '上传图片失败');
             }
         }
-        
+
         showToast('图片上传成功');
         loadProductImages(prodId);
     } catch (err) {
@@ -2527,37 +2527,37 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
     const stockInput = document.getElementById('prod-stock');
     const stockLabel = stockGroup ? stockGroup.querySelector('label') : null;
     const uploader = document.querySelector('.image-uploader-section');
-    
+
     form.reset();
     clearPendingProductImages();
     document.getElementById('prod-id').value = '';
     document.querySelectorAll('#product-images-list .image-preview-item').forEach(item => item.remove());
-    
+
     if (uploader) {
         uploader.classList.remove('hidden'); // Always visible for both new and edit
     }
-    
+
     if (barcodePreFill) {
         document.getElementById('prod-barcode').value = barcodePreFill;
     }
-    
+
     // Always keep stock group visible
     if (stockGroup) {
         stockGroup.classList.remove('hidden');
     }
-    
+
     // Ensure datalist suggestions are refreshed and required fields UI is applied
     populateSuggestions();
     applyProductModalRequiredFieldsUI();
-    
+
     if (productId) {
         title.textContent = '编辑商品详情';
         if (stockLabel) stockLabel.textContent = '当前库存';
-        
+
         if (stockInput) {
             stockInput.readOnly = false;
         }
-        
+
         // Fetch specific details directly by ID
         fetch(`api/products.php?id=${productId}`)
             .then(res => res.json())
@@ -2573,11 +2573,11 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
                     document.getElementById('prod-local').value = p.local;
                     document.getElementById('prod-price').value = p.price;
                     document.getElementById('prod-mark').value = p.mark;
-                    
+
                     if (stockInput) {
                         stockInput.value = p.stock;
                     }
-                    
+
                     loadProductImages(p.id);
                 }
             });
@@ -2607,7 +2607,7 @@ function openProductFormModal(productId = null, barcodePreFill = null) {
             barcodeInput.value = barcodePreFill || generateUniqueBarcode();
         }
     }
-    
+
     openModal('product-modal');
 }
 
@@ -2618,7 +2618,7 @@ function generateUniqueBarcode() {
     const dd = String(now.getDate()).padStart(2, '0');
     const rand = String(Math.floor(100 + Math.random() * 900));
     const first12 = `690${yy}${mm}${dd}${rand}`;
-    
+
     let sumOdd = 0;
     let sumEven = 0;
     for (let i = 0; i < 12; i++) {
@@ -2640,12 +2640,12 @@ function loadProductImages(productId) {
         .then(images => {
             const container = document.getElementById('product-images-list');
             if (!container) return;
-            
+
             // Clear only existing preview thumbnails, keeping the upload trigger buttons intact
             container.querySelectorAll('.image-preview-item').forEach(item => item.remove());
-            
+
             const firstTrigger = document.getElementById('image-upload-trigger-area');
-            
+
             images.forEach(img => {
                 const div = document.createElement('div');
                 div.className = 'image-preview-item';
@@ -2653,12 +2653,12 @@ function loadProductImages(productId) {
                     <img src="${img.image_path}" alt="Image" style="cursor: pointer;">
                     <button type="button" class="del-img-btn" data-img-id="${img.id}"><i class="fa-solid fa-xmark"></i></button>
                 `;
-                
+
                 // Attach zoom view action
                 div.querySelector('img').addEventListener('click', () => {
                     openGalleryModal(productId, img.image_path);
                 });
-                
+
                 // Attach delete action
                 div.querySelector('.del-img-btn').addEventListener('click', (e) => {
                     const imgId = e.currentTarget.getAttribute('data-img-id');
@@ -2673,7 +2673,7 @@ function loadProductImages(productId) {
                             });
                     }
                 });
-                
+
                 if (firstTrigger) {
                     container.insertBefore(div, firstTrigger);
                 } else {
@@ -2689,9 +2689,9 @@ function openQuickTransactionModal(productId = null, defaultType = 'in') {
     const searchInput = document.getElementById('txn-product-search');
     const preview = document.getElementById('txn-selected-product-preview');
     const hiddenId = document.getElementById('txn-selected-product-id');
-    
+
     hiddenId.value = productId || '';
-    
+
     if (productId) {
         // Pre-selected mode: Hide search input and result list, show preview card
         if (searchGroup) searchGroup.classList.add('hidden');
@@ -2700,7 +2700,7 @@ function openQuickTransactionModal(productId = null, defaultType = 'in') {
             preview.classList.remove('hidden');
             preview.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
         }
-        
+
         // Fetch specific product details directly
         fetch(`api/products.php?id=${productId}`)
             .then(res => res.json())
@@ -2728,21 +2728,21 @@ function openQuickTransactionModal(productId = null, defaultType = 'in') {
             preview.innerHTML = '';
         }
         if (searchInput) searchInput.value = '';
-        
+
         // Retrieve initial top products list
         fetchProductsForTxnSelect('');
     }
-        
+
     document.getElementById('txn-quantity').value = '1';
     document.getElementById('txn-mark').value = '';
-    
+
     // Set default segment based on defaultType argument
     const typeRadio = document.getElementById(`txn-type-${defaultType}`);
     if (typeRadio) {
         typeRadio.checked = true;
         typeRadio.dispatchEvent(new Event('change'));
     }
-    
+
     openModal('quick-transaction-modal');
 }
 
@@ -2751,7 +2751,7 @@ function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.classList.add('show');
-    
+
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
@@ -2763,9 +2763,9 @@ function showToast(message) {
 function loadUsersList() {
     const container = document.getElementById('settings-users-list');
     if (!container) return;
-    
+
     container.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载账号列表...</div>';
-    
+
     fetch('api/users.php')
         .then(res => {
             if (!res.ok) {
@@ -2779,20 +2779,20 @@ function loadUsersList() {
                 container.innerHTML = '<div class="loading-spinner">暂无账号</div>';
                 return;
             }
-            
+
             users.forEach(u => {
                 const item = document.createElement('div');
                 item.className = 'user-item';
-                
+
                 const roleText = u.role === 'admin' ? '系统管理员' : '普通操作员';
                 const roleBadgeClass = u.role === 'admin' ? 'badge' : 'badge badge-secondary';
-                
+
                 // Prevent self-deletion
                 const isSelf = u.id === state.user.id;
-                const deleteBtnHtml = isSelf 
+                const deleteBtnHtml = isSelf
                     ? `<button type="button" class="btn btn-secondary btn-sm disabled" title="不能删除自己" disabled><i class="fa-solid fa-trash-can"></i> 删除</button>`
                     : `<button type="button" class="btn btn-secondary btn-sm delete-user-btn" data-id="${u.id}" data-username="${u.username}"><i class="fa-solid fa-trash-can"></i> 删除</button>`;
-                
+
                 item.innerHTML = `
                     <div class="user-item-info">
                         <h4>${u.username} ${isSelf ? '<span style="font-size:10px; opacity:0.6;">(当前登录)</span>' : ''}</h4>
@@ -2805,7 +2805,7 @@ function loadUsersList() {
                 `;
                 container.appendChild(item);
             });
-            
+
             attachUserListEvents();
         })
         .catch(err => {
@@ -2823,30 +2823,30 @@ function attachUserListEvents() {
             openUserModal(id, username, role);
         });
     });
-    
+
     // Delete user click
     document.querySelectorAll('.delete-user-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.getAttribute('data-id');
             const username = e.currentTarget.getAttribute('data-username');
-            
+
             if (confirm(`确认要删除用户账号 "${username}" 吗？此操作不可撤销！`)) {
                 fetch(`api/users.php?id=${id}`, {
                     method: 'DELETE'
                 })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.json().then(err => { throw new Error(err.error || '删除失败'); });
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showToast(`用户账号 "${username}" 已成功删除`);
-                        loadUsersList();
-                    }
-                })
-                .catch(err => showToast(err.message));
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(err => { throw new Error(err.error || '删除失败'); });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            showToast(`用户账号 "${username}" 已成功删除`);
+                            loadUsersList();
+                        }
+                    })
+                    .catch(err => showToast(err.message));
             }
         });
     });
@@ -2859,10 +2859,10 @@ function openUserModal(userId = null, username = '', role = 'user') {
     const passwordInput = document.getElementById('user-form-password');
     const passwordLabel = document.querySelector('#user-form-password-group label');
     const roleSelect = document.getElementById('user-form-role');
-    
+
     form.reset();
     document.getElementById('user-form-id').value = userId || '';
-    
+
     if (userId) {
         title.textContent = '编辑用户账号';
         usernameInput.value = username;
@@ -2880,7 +2880,7 @@ function openUserModal(userId = null, username = '', role = 'user') {
         passwordInput.required = true;
         passwordInput.placeholder = '请输入密码，最少 6 位';
     }
-    
+
     openModal('user-modal');
 }
 
@@ -2910,7 +2910,7 @@ function openGalleryModal(productId, initialSrc) {
                     updateViewerUI();
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     }
 }
 
@@ -3016,9 +3016,9 @@ function fetchProductsForTxnSelect(query = '') {
     const listContainer = document.getElementById('txn-search-results-list');
     const hiddenIdInput = document.getElementById('txn-selected-product-id');
     if (!listContainer) return;
-    
+
     listContainer.innerHTML = '<div class="loading-spinner" style="padding: 15px;"><i class="fa-solid fa-spinner fa-spin"></i> 正在检索商品...</div>';
-    
+
     fetch(`api/products.php?limit=50&search=${encodeURIComponent(query)}`)
         .then(res => res.json())
         .then(data => {
@@ -3027,12 +3027,12 @@ function fetchProductsForTxnSelect(query = '') {
                 listContainer.innerHTML = '<div class="loading-spinner" style="padding: 15px;">无匹配商品</div>';
                 return;
             }
-            
+
             data.products.forEach(p => {
                 const item = document.createElement('div');
                 item.className = 'txn-search-result-item';
                 item.setAttribute('data-id', p.id);
-                
+
                 item.innerHTML = `
                     <div class="result-info">
                         <span class="result-name">${p.name}</span>
@@ -3040,19 +3040,19 @@ function fetchProductsForTxnSelect(query = '') {
                     </div>
                     <span class="result-stock">库存: ${p.stock} ${p.unit || '个'}</span>
                 `;
-                
+
                 // If it is the currently selected product, add selected class
                 if (hiddenIdInput.value === String(p.id)) {
                     item.classList.add('selected');
                 }
-                
+
                 // Click to select
                 item.addEventListener('click', () => {
                     listContainer.querySelectorAll('.txn-search-result-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
                     hiddenIdInput.value = p.id;
                 });
-                
+
                 listContainer.appendChild(item);
             });
         })
