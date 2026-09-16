@@ -1153,8 +1153,8 @@ function loadProductsList() {
                         <th>仓位</th>
                         <th style="text-align: right; width: 95px;">价格</th>
                         <th style="text-align: right; width: 105px;">库存</th>
-                        <th>备注</th>
-                        <th style="text-align: center; width: 195px;">操作</th>
+                        <th style="width: 180px; max-width: 220px;">备注</th>
+                        <th style="text-align: center; width: 195px; min-width: 195px;">操作</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -1222,8 +1222,8 @@ function loadProductsList() {
                         <span class="${stockClass}" style="font-size: 15px;">${p.stock}</span>
                         <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); margin-left: 2px;">${escapeHtml(p.unit || '个')}</span>
                     </td>
-                    <td style="vertical-align: middle;">
-                        ${p.mark ? `<span style="font-size: 12px; color: var(--text-light);">${escapeHtml(p.mark)}</span>` : '--'}
+                    <td style="vertical-align: middle; max-width: 220px;">
+                        ${p.mark ? `<span class="product-table-mark" title="${escapeHtml(p.mark)}">${escapeHtml(p.mark)}</span>` : '<span style="color: var(--text-light);">--</span>'}
                     </td>
                     <td style="text-align: center; vertical-align: middle;">
                         <div class="table-actions" style="display: flex; justify-content: center; gap: 6px;">
