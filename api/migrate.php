@@ -107,6 +107,42 @@ try {
     record_step($results, 'setting.requiredProductFields', 'error', '迁移失败: ' . $e->getMessage());
 }
 
+// ----------------------------------------------------
+// Migration 3: Add searchNumberConvert to setting table
+// ----------------------------------------------------
+try {
+    $has_num_convert_col = false;
+    try {
+        $chk3 = $pdo->query("SELECT searchNumberConvert FROM setting LIMIT 1");
+        if ($chk3 !== false) {
+            $has_num_convert_col = true;
+        }
+    } catch (Throwable $e) {
+        $has_num_convert_col = false;
+    }
+
+    if ($has_num_convert_col) {
+        record_step($results, 'setting.searchNumberConvert', 'already_exists', '字段 searchNumberConvert 已存在，无需重复添加');
+    } else {
+        $default_convert_val = 'true';
+
+        if ($db_type === 'mysql') {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `searchNumberConvert` VARCHAR(10) NOT NULL DEFAULT '$default_convert_val' COMMENT '搜索商品时是否启用数字大小写/汉字自动转换'";
+        } else {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `searchNumberConvert` TEXT NOT NULL DEFAULT '$default_convert_val'";
+        }
+
+        $pdo->exec($sql);
+        // Ensure existing rows have the default value
+        $pdo->exec("UPDATE `setting` SET `searchNumberConvert` = '$default_convert_val' WHERE `searchNumberConvert` IS NULL OR `searchNumberConvert` = ''");
+
+        record_step($results, 'setting.searchNumberConvert', 'success', '成功为 setting 表新增 searchNumberConvert 字段');
+    }
+} catch (Throwable $e) {
+    $results['success'] = false;
+    record_step($results, 'setting.searchNumberConvert', 'error', '迁移失败: ' . $e->getMessage());
+}
+
 // Output response
 if ($is_cli) {
     echo "========================================\n";

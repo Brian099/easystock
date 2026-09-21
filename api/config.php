@@ -35,6 +35,10 @@ $db_type = defined('DB_TYPE') ? strtolower(DB_TYPE) : (defined('DB_HOST') ? 'mys
 if ($db_type === 'sqlite') {
     try {
         $db_path = defined('DB_PATH') ? DB_PATH : (__DIR__ . '/../data/stock.db');
+        $db_dir = dirname($db_path);
+        if (!is_dir($db_dir)) {
+            @mkdir($db_dir, 0777, true);
+        }
         $pdo = new PDO(
             "sqlite:" . $db_path,
             null,
@@ -50,7 +54,11 @@ if ($db_type === 'sqlite') {
         $pdo->exec("PRAGMA journal_mode = WAL;");
     } catch (PDOException $e) {
         if (!$is_installing) {
-            send_json(['error' => 'SQLite Database connection failed: ' . $e->getMessage()], 500);
+            $msg = $e->getMessage();
+            if (strpos($msg, 'unable to open database file') !== false) {
+                $msg .= '。原因通常是 Linux/服务器环境下 data 目录或 stock.db 缺少 Web 服务运行用户（如 www-data/nginx/apache）的写权限。请在服务器执行命令: chmod -R 777 data 或 chown -R www-data:www-data data';
+            }
+            send_json(['error' => 'SQLite Database connection failed: ' . $msg], 500);
         }
     }
 } elseif ($db_type === 'mysql' && defined('DB_HOST')) {

@@ -10,7 +10,8 @@ const state = {
         allowEditStock: 'false',
         companyName: '',
         defaultSearchFields: 'name,model,spec,barcode,brand,local,mark',
-        requiredProductFields: 'name'
+        requiredProductFields: 'name',
+        searchNumberConvert: 'true'
     },
     activeSearchFields: ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'],
     searchFieldsModifiedByUser: false,
@@ -163,7 +164,7 @@ function setupRouting() {
 }
 
 function navigateTo(viewId) {
-    const validViews = ['dashboard', 'products', 'logs', 'settings'];
+    const validViews = ['dashboard', 'products', 'logs', 'settings', 'users'];
     if (!validViews.includes(viewId)) viewId = 'dashboard';
 
     state.currentView = viewId;
@@ -202,8 +203,11 @@ function loadViewData(viewId) {
         loadLogsList();
     } else if (viewId === 'settings') {
         if (state.user && state.user.role === 'admin') {
-            loadUsersList();
             loadBarcodeStats();
+        }
+    } else if (viewId === 'users') {
+        if (state.user && state.user.role === 'admin') {
+            loadUsersList();
         }
     }
 }
@@ -344,6 +348,12 @@ function loadSettings() {
             // Apply required product fields checkboxes in Settings view
             applySettingsRequiredFieldsUI(state.settings.requiredProductFields);
 
+            // Apply search number convert checkbox in Settings view
+            const searchNumConvert = document.getElementById('setting-search-num-convert');
+            if (searchNumConvert) {
+                searchNumConvert.checked = (state.settings.searchNumberConvert !== 'false');
+            }
+
             // If user hasn't explicitly toggled search chips in this session, sync activeSearchFields with default
             if (!state.searchFieldsModifiedByUser) {
                 const defaultFieldsStr = state.settings.defaultSearchFields || 'name,model,spec,barcode,brand,local,mark';
@@ -355,6 +365,7 @@ function loadSettings() {
             const isAdmin = (state.user && state.user.role === 'admin');
             if (allowEdit) allowEdit.disabled = !isAdmin;
             if (companyInput) companyInput.disabled = !isAdmin;
+            if (searchNumConvert) searchNumConvert.disabled = !isAdmin;
 
             document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]').forEach(chk => {
                 chk.disabled = !isAdmin;
@@ -815,6 +826,9 @@ function setupForms() {
             });
             const requiredProductFields = selectedReqFields.join(',');
 
+            // Gather search number convert setting
+            const searchNumberConvert = document.getElementById('setting-search-num-convert')?.checked ? 'true' : 'false';
+
             fetch('api/settings.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -822,7 +836,8 @@ function setupForms() {
                     allowEditStock: allowEdit,
                     companyName: companyName,
                     defaultSearchFields: defaultSearchFields,
-                    requiredProductFields: requiredProductFields
+                    requiredProductFields: requiredProductFields,
+                    searchNumberConvert: searchNumberConvert
                 })
             })
                 .then(res => {
@@ -1098,8 +1113,9 @@ function loadProductsList() {
     const local = document.getElementById('product-filter-local').value;
     const page = state.productsPagination.page;
     const searchFieldsParam = (state.activeSearchFields || []).join(',');
+    const convertNumParam = (state.settings?.searchNumberConvert === 'false') ? '0' : '1';
 
-    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}`;
+    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}&convert_num=${convertNumParam}`;
 
     // Check if we reached this via low-stock warning card
     if (state.filterLowStockOnly) {
@@ -1874,58 +1890,64 @@ function setLogDateRange(rangeKey) {
  * 7. History/Audit Logs Loading
  * -------------------------------------------------- */
 function loadLogsList() {
-    const search = document.getElementById('log-search-input').value;
-    const type = document.getElementById('log-filter-type').value;
+    const search = document.getElementById('log-search-input')?.value || '';
+    const type = document.getElementById('log-filter-type')?.value || '';
     const startDate = document.getElementById('log-start-date')?.value || '';
     const endDate = document.getElementById('log-end-date')?.value || '';
-    const page = state.logsPagination.page;
+    const page = state.logsPagination.page || 1;
+    const tbody = document.getElementById('logs-table-body');
 
-    fetch(`api/stock.php?page=${page}&limit=20&search=${encodeURIComponent(search)}&type=${type}&start_date=${startDate}&end_date=${endDate}`)
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载数据...</td></tr>';
+    }
+
+    fetch(`api/stock.php?page=${page}&limit=50&search=${encodeURIComponent(search)}&type=${type}&start_date=${startDate}&end_date=${endDate}`)
         .then(res => res.json())
         .then(data => {
             state.logsPagination = data.pagination;
-            const container = document.getElementById('logs-timeline-container');
-            container.innerHTML = '';
+            if (!tbody) return;
+            tbody.innerHTML = '';
 
-            if (data.logs.length === 0) {
-                container.innerHTML = '<div class="loading-spinner">没有找到库存流转日志</div>';
-                document.getElementById('logs-pagination').innerHTML = '';
+            if (!data.logs || data.logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 36px 16px; color: var(--text-light);"><i class="fa-regular fa-folder-open" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>没有找到库存流转记录</td></tr>';
+                const paginationEl = document.getElementById('logs-pagination');
+                if (paginationEl) paginationEl.innerHTML = '';
                 return;
             }
 
             data.logs.forEach(log => {
-                const card = document.createElement('div');
+                const tr = document.createElement('tr');
                 const meta = getLogTypeMeta(log.type, log.quantity, log.mark);
 
-                const typeClass = meta.typeClass;
                 const typeStr = meta.typeStr;
                 const tagClass = meta.tagClass;
                 const qtySigned = meta.signedStr;
-                const qtyClass = meta.qtyClass;
+                const qtyColor = meta.qtyColor;
 
-                card.className = `timeline-card ${typeClass}`;
-
-                let prodDetails = log.history_name;
-                if (log.history_model) {
-                    prodDetails += ` (${log.history_model})`;
-                }
-
-                card.innerHTML = `
-                    <div class="timeline-header">
-                        <div class="timeline-tag-area">
-                            <span class="log-type-tag ${tagClass}">${typeStr}</span>
-                        </div>
-                        <span class="timeline-time">${log.created_at}</span>
-                    </div>
-                    <div class="timeline-body">
-                        <div class="timeline-info">
-                            <h4>${prodDetails}</h4>
-                            <p class="operator-tag">操作人: ${log.operator_name || '系统'}</p>
-                        </div>
-                        <div class="timeline-qty ${qtyClass}">${qtySigned}</div>
-                    </div>
+                tr.innerHTML = `
+                    <td class="log-cell-time" style="font-size: 12.5px; color: var(--text-secondary); white-space: nowrap;">
+                        <i class="fa-regular fa-clock" style="margin-right: 5px; color: var(--text-light); font-size: 11px;"></i>${escapeHtml(log.created_at)}
+                    </td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <span class="log-type-tag ${tagClass}">${typeStr}</span>
+                    </td>
+                    <td style="font-weight: 600; color: var(--text-primary); word-break: break-all;">
+                        ${escapeHtml(log.history_name || '--')}
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 12.5px;">
+                        ${escapeHtml(log.history_model || '--')}
+                    </td>
+                    <td style="text-align: right; font-weight: 700; font-size: 14px; white-space: nowrap; color: ${qtyColor};">
+                        ${qtySigned}
+                    </td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <span class="operator-badge">${escapeHtml(log.operator_name || '系统')}</span>
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 12px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(log.mark || '')}">
+                        ${escapeHtml(log.mark || '--')}
+                    </td>
                 `;
-                container.appendChild(card);
+                tbody.appendChild(tr);
             });
 
             // Render pagination controls
@@ -1933,6 +1955,11 @@ function loadLogsList() {
                 state.logsPagination.page = targetPage;
                 loadLogsList();
             });
+        })
+        .catch(err => {
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--danger-color);"><i class="fa-solid fa-circle-exclamation"></i> 加载失败: ${escapeHtml(err.message)}</td></tr>`;
+            }
         });
 }
 
@@ -1961,6 +1988,7 @@ function setupModals() {
             if (local) params.append('local', local);
             if (lowStock === '1') params.append('low_stock', '1');
             if (searchFieldsParam) params.append('search_fields', searchFieldsParam);
+            params.append('convert_num', state.settings?.searchNumberConvert === 'false' ? '0' : '1');
 
             const url = `api/export_products.php?${params.toString()}`;
             showToast('正在导出商品数据表格...');
@@ -3064,7 +3092,8 @@ function fetchProductsForTxnSelect(query = '') {
 
     listContainer.innerHTML = '<div class="loading-spinner" style="padding: 15px;"><i class="fa-solid fa-spinner fa-spin"></i> 正在检索商品...</div>';
 
-    fetch(`api/products.php?limit=50&search=${encodeURIComponent(query)}`)
+    const convertNumParam = (state.settings?.searchNumberConvert === 'false') ? '0' : '1';
+    fetch(`api/products.php?limit=50&search=${encodeURIComponent(query)}&convert_num=${convertNumParam}`)
         .then(res => res.json())
         .then(data => {
             listContainer.innerHTML = '';

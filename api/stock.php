@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/search_helper.php';
 
 $currentUser = require_login();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -85,10 +86,20 @@ if ($method === 'GET') {
         }
         
         if ($search !== '') {
-            $where_clauses[] = "(l.history_name LIKE ? OR l.history_model LIKE ?)";
-            $search_param = "%$search%";
-            $params[] = $search_param;
-            $params[] = $search_param;
+            $num_convert_enabled = is_search_number_convert_enabled($pdo);
+            $search_variants = $num_convert_enabled ? expand_search_number_variants($search) : [$search];
+            if (empty($search_variants)) {
+                $search_variants = [$search];
+            }
+
+            $log_search_conditions = [];
+            foreach ($search_variants as $v) {
+                $log_search_conditions[] = "l.history_name LIKE ?";
+                $params[] = "%$v%";
+                $log_search_conditions[] = "l.history_model LIKE ?";
+                $params[] = "%$v%";
+            }
+            $where_clauses[] = "(" . implode(' OR ', $log_search_conditions) . ")";
         }
         
         $where_sql = '';

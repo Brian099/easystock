@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/search_helper.php';
 
 // Requires logged in user
 $currentUser = require_login();
@@ -31,14 +32,20 @@ if ($search !== '') {
         $fields_list = array_keys($all_supported_fields);
     }
     
+    $num_convert_enabled = is_search_number_convert_enabled($pdo);
+    $search_variants = $num_convert_enabled ? expand_search_number_variants($search) : [$search];
+    if (empty($search_variants)) {
+        $search_variants = [$search];
+    }
+
     $search_conditions = [];
-    $term = "%{$search}%";
-    
     foreach ($fields_list as $f) {
         if (isset($all_supported_fields[$f])) {
             foreach ($all_supported_fields[$f] as $col) {
-                $search_conditions[] = "$col LIKE ?";
-                $params[] = $term;
+                foreach ($search_variants as $v) {
+                    $search_conditions[] = "$col LIKE ?";
+                    $params[] = "%$v%";
+                }
             }
         }
     }
