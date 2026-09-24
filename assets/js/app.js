@@ -1958,8 +1958,8 @@ function loadLogsList() {
                     <td class="log-cell-time" style="font-size: 12.5px; color: var(--text-secondary); white-space: nowrap;">
                         <i class="fa-regular fa-clock" style="margin-right: 5px; color: var(--text-light); font-size: 11px;"></i>${escapeHtml(log.created_at)}
                     </td>
-                    <td style="text-align: center; white-space: nowrap;">
-                        <span class="log-type-tag ${tagClass}">${typeStr}</span>
+                    <td style="text-align: right; font-weight: 700; font-size: 14px; white-space: nowrap; color: ${qtyColor};">
+                        ${qtySigned}
                     </td>
                     <td style="font-weight: 600; color: var(--text-primary); word-break: break-all;">
                         ${escapeHtml(log.history_name || '--')}
@@ -1967,8 +1967,8 @@ function loadLogsList() {
                     <td style="color: var(--text-secondary); font-size: 12.5px;">
                         ${escapeHtml(log.history_model || '--')}
                     </td>
-                    <td style="text-align: right; font-weight: 700; font-size: 14px; white-space: nowrap; color: ${qtyColor};">
-                        ${qtySigned}
+                    <td style="text-align: center; white-space: nowrap;">
+                        <span class="log-type-tag ${tagClass}">${typeStr}</span>
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
                         <span class="operator-badge">${escapeHtml(log.operator_name || '系统')}</span>
