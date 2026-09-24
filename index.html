@@ -526,6 +526,34 @@
                                     </div>
                                 </div>
 
+                                <!-- Setting Item 5: Symbol conversion search -->
+                                <div class="setting-item-box">
+                                    <div class="toggle-group">
+                                        <div class="toggle-label-desc">
+                                            <label for="setting-search-symbol-convert"><i class="fa-solid fa-shuffle"></i> 搜索商品时启用符号自动互换</label>
+                                            <p>开启后搜索时自动进行常见符号互换匹配，例如 <code>x</code> 与 <code>*</code>、<code>-</code> 与 <code>_</code>、<code>/</code> 与 <code>\</code>、中文与英文括号等互相匹配。</p>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="setting-search-symbol-convert">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Setting Item 6: Space ignore search -->
+                                <div class="setting-item-box">
+                                    <div class="toggle-group">
+                                        <div class="toggle-label-desc">
+                                            <label for="setting-search-space-ignore"><i class="fa-solid fa-arrows-left-right-to-line"></i> 搜索商品时忽略中英文空格差异</label>
+                                            <p>开启后搜索时自动消除中英文空格差异，例如搜索“S1W”可匹配“S1 W”、“S 1W”，搜索“S 1W”亦可匹配“S1W”。</p>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="setting-search-space-ignore">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div
                                     style="font-size: 12px; color: var(--text-light); line-height: 1.6; padding: 10px 12px; background: var(--bg-color); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px;">
                                     <i class="fa-solid fa-circle-info"></i>

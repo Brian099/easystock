@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/search_helper.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -10,22 +11,18 @@ if ($method === 'GET') {
     $stmt = null;
     $row = false;
     try {
-        $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert FROM setting WHERE id = 1 LIMIT 1");
+        $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert, searchSymbolConvert, searchSpaceIgnore FROM setting WHERE id = 1 LIMIT 1");
         $row = $stmt ? $stmt->fetch() : false;
     } catch (Throwable $e) {
-        try {
-            $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields, requiredProductFields FROM setting WHERE id = 1 LIMIT 1");
-            $row = $stmt ? $stmt->fetch() : false;
-        } catch (Throwable $e2) {
-            // Fallback for pre-migration schema
-            $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields FROM setting WHERE id = 1 LIMIT 1");
-            $row = $stmt ? $stmt->fetch() : false;
-        }
+        // Fallback
+        $row = false;
     }
     
     $defaultFields = (!empty($row['defaultSearchFields'])) ? (string)$row['defaultSearchFields'] : 'name,model,spec,barcode,brand,local,mark';
     $requiredProductFields = (!empty($row['requiredProductFields'])) ? (string)$row['requiredProductFields'] : 'name';
     $searchNumberConvert = (($row['searchNumberConvert'] ?? 'true') === 'false') ? 'false' : 'true';
+    $searchSymbolConvert = (($row['searchSymbolConvert'] ?? 'true') === 'false') ? 'false' : 'true';
+    $searchSpaceIgnore = (($row['searchSpaceIgnore'] ?? 'true') === 'false') ? 'false' : 'true';
     
     $setting = [
         'id' => 1,
@@ -33,7 +30,9 @@ if ($method === 'GET') {
         'companyName' => (string)($row['companyName'] ?? ''),
         'defaultSearchFields' => $defaultFields,
         'requiredProductFields' => $requiredProductFields,
-        'searchNumberConvert' => $searchNumberConvert
+        'searchNumberConvert' => $searchNumberConvert,
+        'searchSymbolConvert' => $searchSymbolConvert,
+        'searchSpaceIgnore' => $searchSpaceIgnore
     ];
     
     // 2. Aggregate unique brands, units, and locations directly from products table
@@ -93,15 +92,27 @@ elseif ($method === 'PUT') {
         $searchNumberConvert = 'true';
     }
 
+    // Validate search symbol convert switch
+    $searchSymbolConvert = trim($input['searchSymbolConvert'] ?? 'true');
+    if (!in_array($searchSymbolConvert, ['true', 'false'])) {
+        $searchSymbolConvert = 'true';
+    }
+
+    // Validate search space ignore switch
+    $searchSpaceIgnore = trim($input['searchSpaceIgnore'] ?? 'true');
+    if (!in_array($searchSpaceIgnore, ['true', 'false'])) {
+        $searchSpaceIgnore = 'true';
+    }
+
     try {
         // Standard SQL update/insert compatible with both SQLite and MySQL
-        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ?, defaultSearchFields = ?, requiredProductFields = ?, searchNumberConvert = ? WHERE id = 1");
-        $stmt->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert]);
+        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ?, defaultSearchFields = ?, requiredProductFields = ?, searchNumberConvert = ?, searchSymbolConvert = ?, searchSpaceIgnore = ? WHERE id = 1");
+        $stmt->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert, $searchSymbolConvert, $searchSpaceIgnore]);
         
         $chk = $pdo->query("SELECT id FROM setting WHERE id = 1");
         if (!$chk->fetch()) {
-            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert) VALUES (1, ?, ?, ?, ?, ?)");
-            $ins->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert]);
+            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert, searchSymbolConvert, searchSpaceIgnore) VALUES (1, ?, ?, ?, ?, ?, ?, ?)");
+            $ins->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert, $searchSymbolConvert, $searchSpaceIgnore]);
         }
         
         send_json([
@@ -112,7 +123,9 @@ elseif ($method === 'PUT') {
                 'companyName' => $companyName,
                 'defaultSearchFields' => $cleanDefaultSearchFields,
                 'requiredProductFields' => $cleanRequiredProductFields,
-                'searchNumberConvert' => $searchNumberConvert
+                'searchNumberConvert' => $searchNumberConvert,
+                'searchSymbolConvert' => $searchSymbolConvert,
+                'searchSpaceIgnore' => $searchSpaceIgnore
             ]
         ]);
     } catch (Exception $e) {

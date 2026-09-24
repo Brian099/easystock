@@ -143,6 +143,72 @@ try {
     record_step($results, 'setting.searchNumberConvert', 'error', '迁移失败: ' . $e->getMessage());
 }
 
+// ----------------------------------------------------
+// Migration 4: Add searchSymbolConvert to setting table
+// ----------------------------------------------------
+try {
+    $has_symbol_convert_col = false;
+    try {
+        $chk4 = $pdo->query("SELECT searchSymbolConvert FROM setting LIMIT 1");
+        if ($chk4 !== false) {
+            $has_symbol_convert_col = true;
+        }
+    } catch (Throwable $e) {
+        $has_symbol_convert_col = false;
+    }
+
+    if ($has_symbol_convert_col) {
+        record_step($results, 'setting.searchSymbolConvert', 'already_exists', '字段 searchSymbolConvert 已存在，无需重复添加');
+    } else {
+        $default_symbol_val = 'true';
+        if ($db_type === 'mysql') {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `searchSymbolConvert` VARCHAR(10) NOT NULL DEFAULT '$default_symbol_val' COMMENT '搜索商品时是否启用符号自动互换'";
+        } else {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `searchSymbolConvert` TEXT NOT NULL DEFAULT '$default_symbol_val'";
+        }
+
+        $pdo->exec($sql);
+        $pdo->exec("UPDATE `setting` SET `searchSymbolConvert` = '$default_symbol_val' WHERE `searchSymbolConvert` IS NULL OR `searchSymbolConvert` = ''");
+        record_step($results, 'setting.searchSymbolConvert', 'success', '成功为 setting 表新增 searchSymbolConvert 字段');
+    }
+} catch (Throwable $e) {
+    $results['success'] = false;
+    record_step($results, 'setting.searchSymbolConvert', 'error', '迁移失败: ' . $e->getMessage());
+}
+
+// ----------------------------------------------------
+// Migration 5: Add searchSpaceIgnore to setting table
+// ----------------------------------------------------
+try {
+    $has_space_ignore_col = false;
+    try {
+        $chk5 = $pdo->query("SELECT searchSpaceIgnore FROM setting LIMIT 1");
+        if ($chk5 !== false) {
+            $has_space_ignore_col = true;
+        }
+    } catch (Throwable $e) {
+        $has_space_ignore_col = false;
+    }
+
+    if ($has_space_ignore_col) {
+        record_step($results, 'setting.searchSpaceIgnore', 'already_exists', '字段 searchSpaceIgnore 已存在，无需重复添加');
+    } else {
+        $default_space_val = 'true';
+        if ($db_type === 'mysql') {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `searchSpaceIgnore` VARCHAR(10) NOT NULL DEFAULT '$default_space_val' COMMENT '搜索商品时是否忽略空格差异'";
+        } else {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `searchSpaceIgnore` TEXT NOT NULL DEFAULT '$default_space_val'";
+        }
+
+        $pdo->exec($sql);
+        $pdo->exec("UPDATE `setting` SET `searchSpaceIgnore` = '$default_space_val' WHERE `searchSpaceIgnore` IS NULL OR `searchSpaceIgnore` = ''");
+        record_step($results, 'setting.searchSpaceIgnore', 'success', '成功为 setting 表新增 searchSpaceIgnore 字段');
+    }
+} catch (Throwable $e) {
+    $results['success'] = false;
+    record_step($results, 'setting.searchSpaceIgnore', 'error', '迁移失败: ' . $e->getMessage());
+}
+
 // Output response
 if ($is_cli) {
     echo "========================================\n";

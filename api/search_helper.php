@@ -310,6 +310,70 @@ function expand_search_number_variants($query) {
 }
 
 /**
+ * 代码内置预设的常见符号互换等价组
+ * 包含乘号/字母x、连字符/下划线、斜杠反斜杠、中英文括号、中英文句点、冒号等
+ */
+const BUILTIN_SEARCH_SYMBOL_GROUPS = [
+    ['x', '*', 'X', '×', '✕', '✖'],
+    ['-', '_', '—', '–'],
+    ['/', '\\'],
+    ['(', '（'],
+    [')', '）'],
+    ['[', '【', '［'],
+    [']', '】', '］'],
+    ['.', '。', '·', '•'],
+    [':', '：'],
+    [',', '，']
+];
+
+/**
+ * 展开搜索查询中的符号互换变体（使用内置等价符号组）
+ *
+ * @param string $query 原始查询词
+ * @return array 包含原始词及符号替换后的变体数组
+ */
+function expand_search_symbol_variants($query) {
+    $query = trim($query);
+    if ($query === '') return [];
+
+    $groups = BUILTIN_SEARCH_SYMBOL_GROUPS;
+
+    // 检查查询词中命中了哪些符号组
+    $active_groups = [];
+    foreach ($groups as $g) {
+        foreach ($g as $sym) {
+            if (mb_strpos($query, $sym) !== false) {
+                $active_groups[] = $g;
+                break;
+            }
+        }
+    }
+    if (empty($active_groups)) return [$query];
+
+    // 针对命中的符号组进行全量替换扩展
+    $current_variants = [$query];
+    foreach ($active_groups as $g) {
+        $next_variants = $current_variants;
+        foreach ($current_variants as $var) {
+            foreach ($g as $from_sym) {
+                if (mb_strpos($var, $from_sym) === false) continue;
+                foreach ($g as $to_sym) {
+                    if ($from_sym === $to_sym) continue;
+                    $replaced = str_replace($from_sym, $to_sym, $var);
+                    if (!in_array($replaced, $next_variants, true)) {
+                        $next_variants[] = $replaced;
+                        if (count($next_variants) >= 50) break 4;
+                    }
+                }
+            }
+        }
+        $current_variants = $next_variants;
+    }
+
+    return array_values(array_unique($current_variants));
+}
+
+/**
  * 辅助函数：根据系统设置和请求参数判断是否开启了数字转换
  *
  * @param PDO|null $pdo
@@ -336,4 +400,148 @@ function is_search_number_convert_enabled($pdo = null) {
     }
 
     return true;
+}
+
+/**
+ * 辅助函数：根据系统设置和请求参数判断是否开启了符号互换
+ *
+ * @param PDO|null $pdo
+ * @return bool
+ */
+function is_search_symbol_convert_enabled($pdo = null) {
+    // 1. 若 URL 中明确传参，则优先依据传参
+    if (isset($_GET['convert_symbol'])) {
+        $val = strtolower(trim($_GET['convert_symbol']));
+        return in_array($val, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    // 2. 否则从数据库 setting 读取
+    if ($pdo) {
+        try {
+            $stmt = $pdo->query("SELECT searchSymbolConvert FROM setting WHERE id = 1 LIMIT 1");
+            if ($stmt && ($row = $stmt->fetch())) {
+                return ($row['searchSymbolConvert'] ?? 'true') === 'true';
+            }
+        } catch (Throwable $e) {
+            // 字段尚未迁移时默认启用
+            return true;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 辅助函数：根据系统设置和请求参数判断是否开启了搜索忽略/清理空格
+ *
+ * @param PDO|null $pdo
+ * @return bool
+ */
+function is_search_space_ignore_enabled($pdo = null) {
+    // 1. 若 URL 中明确传参，则优先依据传参
+    if (isset($_GET['ignore_space'])) {
+        $val = strtolower(trim($_GET['ignore_space']));
+        return in_array($val, ['1', 'true', 'yes', 'on'], true);
+    }
+    if (isset($_GET['convert_space'])) {
+        $val = strtolower(trim($_GET['convert_space']));
+        return in_array($val, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    // 2. 否则从数据库 setting 读取
+    if ($pdo) {
+        try {
+            $stmt = $pdo->query("SELECT searchSpaceIgnore FROM setting WHERE id = 1 LIMIT 1");
+            if ($stmt && ($row = $stmt->fetch())) {
+                return ($row['searchSpaceIgnore'] ?? 'true') === 'true';
+            }
+        } catch (Throwable $e) {
+            // 字段尚未迁移时默认启用
+            return true;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 构建单个字段的 LIKE 条件表达式和绑定参数
+ * 支持根据是否开启空格忽略进行中英文空格剥离匹配
+ *
+ * @param string $col 列名
+ * @param string $v 变体字符串
+ * @param bool $space_ignore 是否启用空格忽略
+ * @return array [$sql_fragment, $param_value]
+ */
+function build_search_like_condition($col, $v, $space_ignore = true) {
+    if ($space_ignore) {
+        $clean_v = str_replace([' ', '　', "\t", "\r", "\n"], '', $v);
+        if ($clean_v !== '') {
+            return ["REPLACE(REPLACE($col, ' ', ''), '　', '') LIKE ?", "%$clean_v%"];
+        }
+    }
+    return ["$col LIKE ?", "%$v%"];
+}
+
+/**
+ * 统一综合搜索关键字变体扩展函数（融合数字转换、符号互换与空格清理）
+ *
+ * @param string $query 原始查询词
+ * @param PDO|null $pdo 数据库连接实例
+ * @param array $options 自定义开关选项（可显式指定 enable_num, enable_symbol, enable_space）
+ * @return array 去重后的变体列表
+ */
+function expand_search_variants($query, $pdo = null, $options = []) {
+    $query = trim($query);
+    if ($query === '') return [];
+
+    $enable_num = isset($options['enable_num']) ? (bool)$options['enable_num'] : is_search_number_convert_enabled($pdo);
+    $enable_symbol = isset($options['enable_symbol']) ? (bool)$options['enable_symbol'] : is_search_symbol_convert_enabled($pdo);
+    $enable_space = isset($options['enable_space']) ? (bool)$options['enable_space'] : is_search_space_ignore_enabled($pdo);
+
+    if (!$enable_num && !$enable_symbol) {
+        $base_variants = [$query];
+    } else {
+        // 1. 基础数字扩展
+        $num_variants = $enable_num ? expand_search_number_variants($query) : [$query];
+        if (empty($num_variants)) {
+            $num_variants = [$query];
+        }
+
+        // 2. 若未开启符号替换，直接返回数字变体
+        if (!$enable_symbol) {
+            $base_variants = array_values(array_unique($num_variants));
+        } else {
+            // 3. 在数字变体的基础上进行代码内置符号扩展
+            $base_variants = [];
+
+            foreach ($num_variants as $nv) {
+                $sym_vars = expand_search_symbol_variants($nv);
+                foreach ($sym_vars as $sv) {
+                    $sv = trim($sv);
+                    if ($sv !== '' && !in_array($sv, $base_variants, true)) {
+                        $base_variants[] = $sv;
+                        if (count($base_variants) >= 50) break 2;
+                    }
+                }
+            }
+        }
+    }
+
+    $all_variants = $base_variants;
+
+    // 4. 若开启空格清理，且原词包含空格，增加去空格变体
+    if ($enable_space) {
+        foreach ($base_variants as $bv) {
+            if (strpos($bv, ' ') !== false || mb_strpos($bv, '　') !== false) {
+                $no_sp = str_replace([' ', '　', "\t"], '', $bv);
+                if ($no_sp !== '' && !in_array($no_sp, $all_variants, true)) {
+                    $all_variants[] = $no_sp;
+                    if (count($all_variants) >= 50) break;
+                }
+            }
+        }
+    }
+
+    return !empty($all_variants) ? $all_variants : [$query];
 }

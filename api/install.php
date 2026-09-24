@@ -115,7 +115,9 @@ if ($db_type === 'sqlite') {
       `companyName` TEXT NOT NULL DEFAULT '',
       `defaultSearchFields` TEXT NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark',
       `requiredProductFields` TEXT NOT NULL DEFAULT 'name',
-      `searchNumberConvert` TEXT NOT NULL DEFAULT 'true'
+      `searchNumberConvert` TEXT NOT NULL DEFAULT 'true',
+      `searchSymbolConvert` TEXT NOT NULL DEFAULT 'true',
+      `searchSpaceIgnore` TEXT NOT NULL DEFAULT 'true'
     );
 
     CREATE TABLE IF NOT EXISTS `stock_log` (
@@ -148,7 +150,7 @@ if ($db_type === 'sqlite') {
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true');
+    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`, `searchSymbolConvert`, `searchSpaceIgnore`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true', 'true', 'true');
     ";
 
 } else {
@@ -216,6 +218,8 @@ if ($db_type === 'sqlite') {
       `defaultSearchFields` varchar(255) NOT NULL DEFAULT 'name,model,spec,barcode,brand,local,mark' COMMENT '默认搜索来源字段',
       `requiredProductFields` varchar(255) NOT NULL DEFAULT 'name' COMMENT '商品属性必填字段列表',
       `searchNumberConvert` varchar(10) NOT NULL DEFAULT 'true' COMMENT '搜索商品时是否启用数字大小写/汉字自动转换',
+      `searchSymbolConvert` varchar(10) NOT NULL DEFAULT 'true' COMMENT '搜索商品时是否启用符号自动互换',
+      `searchSpaceIgnore` varchar(10) NOT NULL DEFAULT 'true' COMMENT '搜索商品时是否忽略空格差异',
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -253,8 +257,8 @@ if ($db_type === 'sqlite') {
       UNIQUE KEY `idx_user_username` (`username`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true')
-    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`), `requiredProductFields` = VALUES(`requiredProductFields`), `searchNumberConvert` = VALUES(`searchNumberConvert`);
+    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`, `searchSymbolConvert`, `searchSpaceIgnore`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true', 'true', 'true')
+    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`), `requiredProductFields` = VALUES(`requiredProductFields`), `searchNumberConvert` = VALUES(`searchNumberConvert`), `searchSymbolConvert` = VALUES(`searchSymbolConvert`), `searchSpaceIgnore` = VALUES(`searchSpaceIgnore`);
     ";
 }
 

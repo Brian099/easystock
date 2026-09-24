@@ -11,7 +11,9 @@ const state = {
         companyName: '',
         defaultSearchFields: 'name,model,spec,barcode,brand,local,mark',
         requiredProductFields: 'name',
-        searchNumberConvert: 'true'
+        searchNumberConvert: 'true',
+        searchSymbolConvert: 'true',
+        searchSpaceIgnore: 'true'
     },
     activeSearchFields: ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'],
     searchFieldsModifiedByUser: false,
@@ -354,6 +356,18 @@ function loadSettings() {
                 searchNumConvert.checked = (state.settings.searchNumberConvert !== 'false');
             }
 
+            // Apply search symbol convert checkbox in Settings view
+            const searchSymbolConvert = document.getElementById('setting-search-symbol-convert');
+            if (searchSymbolConvert) {
+                searchSymbolConvert.checked = (state.settings.searchSymbolConvert !== 'false');
+            }
+
+            // Apply search space ignore checkbox in Settings view
+            const searchSpaceIgnore = document.getElementById('setting-search-space-ignore');
+            if (searchSpaceIgnore) {
+                searchSpaceIgnore.checked = (state.settings.searchSpaceIgnore !== 'false');
+            }
+
             // If user hasn't explicitly toggled search chips in this session, sync activeSearchFields with default
             if (!state.searchFieldsModifiedByUser) {
                 const defaultFieldsStr = state.settings.defaultSearchFields || 'name,model,spec,barcode,brand,local,mark';
@@ -366,6 +380,8 @@ function loadSettings() {
             if (allowEdit) allowEdit.disabled = !isAdmin;
             if (companyInput) companyInput.disabled = !isAdmin;
             if (searchNumConvert) searchNumConvert.disabled = !isAdmin;
+            if (searchSymbolConvert) searchSymbolConvert.disabled = !isAdmin;
+            if (searchSpaceIgnore) searchSpaceIgnore.disabled = !isAdmin;
 
             document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]').forEach(chk => {
                 chk.disabled = !isAdmin;
@@ -829,6 +845,12 @@ function setupForms() {
             // Gather search number convert setting
             const searchNumberConvert = document.getElementById('setting-search-num-convert')?.checked ? 'true' : 'false';
 
+            // Gather search symbol convert setting
+            const searchSymbolConvert = document.getElementById('setting-search-symbol-convert')?.checked ? 'true' : 'false';
+
+            // Gather search space ignore setting
+            const searchSpaceIgnore = document.getElementById('setting-search-space-ignore')?.checked ? 'true' : 'false';
+
             fetch('api/settings.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -837,7 +859,9 @@ function setupForms() {
                     companyName: companyName,
                     defaultSearchFields: defaultSearchFields,
                     requiredProductFields: requiredProductFields,
-                    searchNumberConvert: searchNumberConvert
+                    searchNumberConvert: searchNumberConvert,
+                    searchSymbolConvert: searchSymbolConvert,
+                    searchSpaceIgnore: searchSpaceIgnore
                 })
             })
                 .then(res => {
@@ -1114,8 +1138,10 @@ function loadProductsList() {
     const page = state.productsPagination.page;
     const searchFieldsParam = (state.activeSearchFields || []).join(',');
     const convertNumParam = (state.settings?.searchNumberConvert === 'false') ? '0' : '1';
+    const convertSymbolParam = (state.settings?.searchSymbolConvert === 'false') ? '0' : '1';
+    const ignoreSpaceParam = (state.settings?.searchSpaceIgnore === 'false') ? '0' : '1';
 
-    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}&convert_num=${convertNumParam}`;
+    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}&convert_num=${convertNumParam}&convert_symbol=${convertSymbolParam}&ignore_space=${ignoreSpaceParam}`;
 
     // Check if we reached this via low-stock warning card
     if (state.filterLowStockOnly) {
@@ -1901,7 +1927,11 @@ function loadLogsList() {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载数据...</td></tr>';
     }
 
-    fetch(`api/stock.php?page=${page}&limit=50&search=${encodeURIComponent(search)}&type=${type}&start_date=${startDate}&end_date=${endDate}`)
+    const convertNumParam = (state.settings?.searchNumberConvert === 'false') ? '0' : '1';
+    const convertSymbolParam = (state.settings?.searchSymbolConvert === 'false') ? '0' : '1';
+    const ignoreSpaceParam = (state.settings?.searchSpaceIgnore === 'false') ? '0' : '1';
+
+    fetch(`api/stock.php?page=${page}&limit=50&search=${encodeURIComponent(search)}&type=${type}&start_date=${startDate}&end_date=${endDate}&convert_num=${convertNumParam}&convert_symbol=${convertSymbolParam}&ignore_space=${ignoreSpaceParam}`)
         .then(res => res.json())
         .then(data => {
             state.logsPagination = data.pagination;
@@ -1989,6 +2019,8 @@ function setupModals() {
             if (lowStock === '1') params.append('low_stock', '1');
             if (searchFieldsParam) params.append('search_fields', searchFieldsParam);
             params.append('convert_num', state.settings?.searchNumberConvert === 'false' ? '0' : '1');
+            params.append('convert_symbol', state.settings?.searchSymbolConvert === 'false' ? '0' : '1');
+            params.append('ignore_space', state.settings?.searchSpaceIgnore === 'false' ? '0' : '1');
 
             const url = `api/export_products.php?${params.toString()}`;
             showToast('正在导出商品数据表格...');
@@ -3093,7 +3125,9 @@ function fetchProductsForTxnSelect(query = '') {
     listContainer.innerHTML = '<div class="loading-spinner" style="padding: 15px;"><i class="fa-solid fa-spinner fa-spin"></i> 正在检索商品...</div>';
 
     const convertNumParam = (state.settings?.searchNumberConvert === 'false') ? '0' : '1';
-    fetch(`api/products.php?limit=50&search=${encodeURIComponent(query)}&convert_num=${convertNumParam}`)
+    const convertSymbolParam = (state.settings?.searchSymbolConvert === 'false') ? '0' : '1';
+    const ignoreSpaceParam = (state.settings?.searchSpaceIgnore === 'false') ? '0' : '1';
+    fetch(`api/products.php?limit=50&search=${encodeURIComponent(query)}&convert_num=${convertNumParam}&convert_symbol=${convertSymbolParam}&ignore_space=${ignoreSpaceParam}`)
         .then(res => res.json())
         .then(data => {
             listContainer.innerHTML = '';

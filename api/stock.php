@@ -86,18 +86,21 @@ if ($method === 'GET') {
         }
         
         if ($search !== '') {
-            $num_convert_enabled = is_search_number_convert_enabled($pdo);
-            $search_variants = $num_convert_enabled ? expand_search_number_variants($search) : [$search];
+            $space_ignore_enabled = is_search_space_ignore_enabled($pdo);
+            $search_variants = expand_search_variants($search, $pdo);
             if (empty($search_variants)) {
                 $search_variants = [$search];
             }
 
             $log_search_conditions = [];
             foreach ($search_variants as $v) {
-                $log_search_conditions[] = "l.history_name LIKE ?";
-                $params[] = "%$v%";
-                $log_search_conditions[] = "l.history_model LIKE ?";
-                $params[] = "%$v%";
+                list($sql_frag_name, $param_name) = build_search_like_condition('l.history_name', $v, $space_ignore_enabled);
+                $log_search_conditions[] = $sql_frag_name;
+                $params[] = $param_name;
+
+                list($sql_frag_model, $param_model) = build_search_like_condition('l.history_model', $v, $space_ignore_enabled);
+                $log_search_conditions[] = $sql_frag_model;
+                $params[] = $param_model;
             }
             $where_clauses[] = "(" . implode(' OR ', $log_search_conditions) . ")";
         }

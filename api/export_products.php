@@ -32,8 +32,8 @@ if ($search !== '') {
         $fields_list = array_keys($all_supported_fields);
     }
     
-    $num_convert_enabled = is_search_number_convert_enabled($pdo);
-    $search_variants = $num_convert_enabled ? expand_search_number_variants($search) : [$search];
+    $space_ignore_enabled = is_search_space_ignore_enabled($pdo);
+    $search_variants = expand_search_variants($search, $pdo);
     if (empty($search_variants)) {
         $search_variants = [$search];
     }
@@ -43,8 +43,9 @@ if ($search !== '') {
         if (isset($all_supported_fields[$f])) {
             foreach ($all_supported_fields[$f] as $col) {
                 foreach ($search_variants as $v) {
-                    $search_conditions[] = "$col LIKE ?";
-                    $params[] = "%$v%";
+                    list($sql_frag, $param_val) = build_search_like_condition($col, $v, $space_ignore_enabled);
+                    $search_conditions[] = $sql_frag;
+                    $params[] = $param_val;
                 }
             }
         }
