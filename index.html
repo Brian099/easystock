@@ -9,7 +9,7 @@
     <!-- Local FontAwesome Icons -->
     <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="assets/css/style.css?v=3.4">
+    <link rel="stylesheet" href="assets/css/style.css?v=3.6">
 </head>
 
 <body>
@@ -146,6 +146,8 @@
                 <nav class="drawer-nav">
                     <a href="#dashboard" class="nav-item active" data-target="dashboard" data-title="统计看板"
                         title="统计看板"><i class="fa-solid fa-chart-simple"></i> <span class="nav-text">仪表盘</span></a>
+                    <a href="#sales" class="nav-item" data-target="sales" data-title="销售统计" title="销售统计"><i
+                            class="fa-solid fa-chart-line"></i> <span class="nav-text">销售统计</span></a>
                     <a href="#products" class="nav-item" data-target="products" data-title="商品管理" title="商品管理"><i
                             class="fa-solid fa-cubes"></i> <span class="nav-text">商品管理</span></a>
                     <a href="#logs" class="nav-item" data-target="logs" data-title="流转历史" title="流转历史"><i
@@ -235,6 +237,111 @@
                     </div>
                 </section>
 
+                <!-- A2. SALES STATS VIEW -->
+                <section id="view-sales" class="view">
+                    <div class="view-header">
+                        <h2>销售数量统计</h2>
+                        <div class="view-header-actions">
+                            <button type="button" id="export-sales-btn" class="btn btn-secondary btn-sm"
+                                title="导出选定时段的销售出库明细为 CSV 表格"><i class="fa-solid fa-file-export"></i> 导出报表</button>
+                        </div>
+                    </div>
+
+                    <!-- Date & Search Filter Bar -->
+                    <div class="logs-date-bar glass">
+                        <div class="date-custom-inputs">
+                            <input type="date" id="sales-start-date" class="date-input" title="开始日期">
+                            <span class="date-sep">至</span>
+                            <input type="date" id="sales-end-date" class="date-input" title="结束日期">
+                        </div>
+                        <div class="date-quick-pills" id="sales-date-pills">
+                            <button type="button" class="date-pill" data-range="today">今天</button>
+                            <button type="button" class="date-pill" data-range="yesterday">昨天</button>
+                            <button type="button" class="date-pill active" data-range="last_7_days">近7天</button>
+                            <button type="button" class="date-pill" data-range="last_30_days">近30天</button>
+                            <button type="button" class="date-pill" data-range="this_month">本月</button>
+                            <button type="button" class="date-pill" data-range="last_month">上月</button>
+                            <button type="button" class="date-pill" data-range="all">全部</button>
+                        </div>
+                    </div>
+
+                    <div class="search-filter-bar glass logs-filter-bar" style="margin-bottom: 20px;">
+                        <div class="search-input-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="sales-search-input" placeholder="输入商品名称或型号实时检索销量排行...">
+                        </div>
+                    </div>
+
+                    <!-- 5 Metric Cards Grid -->
+                    <div class="metrics-grid sales-metrics-grid">
+                        <div class="metric-card card-gradient-1">
+                            <div class="metric-info">
+                                <h3>销售出库总量</h3>
+                                <p id="sales-metric-total-out" class="metric-number">0 <span class="metric-unit">件</span></p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-boxes-packing"></i></div>
+                        </div>
+                        <div class="metric-card card-gradient-danger">
+                            <div class="metric-info">
+                                <h3>销售退货总量</h3>
+                                <p id="sales-metric-total-re" class="metric-number">0 <span class="metric-unit">件</span></p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                        </div>
+                        <div class="metric-card card-gradient-success">
+                            <div class="metric-info">
+                                <h3>实际净销量</h3>
+                                <p id="sales-metric-net-sales" class="metric-number">0 <span class="metric-unit">件</span></p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                        </div>
+                        <div class="metric-card card-gradient-2">
+                            <div class="metric-info">
+                                <h3>动销商品种类</h3>
+                                <p id="sales-metric-active-items" class="metric-number">0 <span class="metric-unit">种</span></p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-cubes-stacked"></i></div>
+                        </div>
+                        <div class="metric-card card-gradient-warning">
+                            <div class="metric-info">
+                                <h3>出库操作笔数</h3>
+                                <p id="sales-metric-order-count" class="metric-number">0 <span class="metric-unit">笔</span></p>
+                            </div>
+                            <div class="metric-icon"><i class="fa-solid fa-receipt"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Chart: Sales Trends -->
+                    <div class="activity-card glass sales-chart-card" style="margin-bottom: 20px;">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-area"></i> 销量时序走势</h3>
+                            <div class="sales-chart-legend" id="sales-chart-legend-tag">
+                                <span class="legend-badge out-badge"><i class="fa-solid fa-circle"></i> 销售出库</span>
+                                <span class="legend-badge re-badge"><i class="fa-solid fa-circle"></i> 销售退货</span>
+                            </div>
+                        </div>
+                        <div class="sales-chart-wrapper">
+                            <canvas id="salesTrendsChart"></canvas>
+                            <div id="sales-trends-empty" class="chart-empty-state hidden">
+                                <i class="fa-regular fa-chart-bar"></i>
+                                <p>所选时间段内暂无销售流转数据</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Quantity Ranking Table -->
+                    <div class="activity-card glass">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-ranking-star"></i> 商品销售数量排行榜</h3>
+                            <span class="text-muted text-sm" id="sales-logs-total-count">共 0 款动销商品</span>
+                        </div>
+                        <div class="logs-table-wrapper" id="sales-logs-table-container">
+                            <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 排行榜加载中...</div>
+                        </div>
+                        <div class="pagination-container" id="sales-logs-pagination"></div>
+                    </div>
+                </section>
+
                 <!-- B. PRODUCTS VIEW -->
                 <section id="view-products" class="view">
                     <div class="view-header">
@@ -320,17 +427,13 @@
                     </div>
 
                     <!-- Date Quick Filter Bar (Date pickers on the left, quick buttons on the right) -->
-                    <div class="logs-date-bar glass"
-                        style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; justify-content: flex-start !important; gap: 12px !important; margin-bottom: 12px; padding: 10px 16px; overflow-x: auto;">
-                        <div class="date-custom-inputs"
-                            style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 6px !important; flex-shrink: 0 !important;">
+                    <div class="logs-date-bar glass">
+                        <div class="date-custom-inputs">
                             <input type="date" id="log-start-date" class="date-input">
-                            <span class="date-sep"
-                                style="color: var(--text-light); font-size: 13px; padding: 0 4px; user-select: none;">至</span>
+                            <span class="date-sep">至</span>
                             <input type="date" id="log-end-date" class="date-input">
                         </div>
-                        <div class="date-quick-pills"
-                            style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 6px !important; flex-wrap: nowrap !important; flex-shrink: 0 !important;">
+                        <div class="date-quick-pills">
                             <button type="button" class="date-pill active" data-range="all">全部时间</button>
                             <button type="button" class="date-pill" data-range="today">今天</button>
                             <button type="button" class="date-pill" data-range="yesterday">昨天</button>
@@ -636,6 +739,10 @@
                 <a href="#dashboard" class="dock-item active" data-target="dashboard">
                     <i class="fa-solid fa-chart-simple"></i>
                     <span>首页</span>
+                </a>
+                <a href="#sales" class="dock-item" data-target="sales">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>销售</span>
                 </a>
                 <a href="#products" class="dock-item" data-target="products">
                     <i class="fa-solid fa-cubes"></i>
@@ -998,8 +1105,10 @@
         <div id="toast" class="toast">提示信息</div>
     </div>
 
+    <!-- Vendor Chart.js -->
+    <script src="assets/vendor/chartjs/chart.umd.min.js"></script>
     <!-- Application Script -->
-    <script src="assets/js/app.js?v=3.0"></script>
+    <script src="assets/js/app.js?v=3.8"></script>
 </body>
 
 </html>

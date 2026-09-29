@@ -23,7 +23,9 @@ const state = {
         locals: []
     },
     productsPagination: { page: 1, total_pages: 1 },
-    logsPagination: { page: 1, total_pages: 1 }
+    logsPagination: { page: 1, total_pages: 1 },
+    salesPagination: { page: 1, total_pages: 1 },
+    salesChartInstance: null
 };
 
 // DOM Elements & Event Listeners Cache
@@ -38,6 +40,7 @@ function initApp() {
     setupForms();
     setupModals();
     setupSearchFilters();
+    setupSalesModule();
     setupViewerEvents();
 }
 
@@ -166,7 +169,7 @@ function setupRouting() {
 }
 
 function navigateTo(viewId) {
-    const validViews = ['dashboard', 'products', 'logs', 'settings', 'users'];
+    const validViews = ['dashboard', 'sales', 'products', 'logs', 'settings', 'users'];
     if (!validViews.includes(viewId)) viewId = 'dashboard';
 
     state.currentView = viewId;
@@ -197,6 +200,8 @@ function navigateTo(viewId) {
 function loadViewData(viewId) {
     if (viewId === 'dashboard') {
         loadDashboardMetrics();
+    } else if (viewId === 'sales') {
+        loadSalesViewData();
     } else if (viewId === 'products') {
         state.productsPagination.page = 1;
         loadProductsList();
@@ -3168,3 +3173,379 @@ function fetchProductsForTxnSelect(query = '') {
             listContainer.innerHTML = '<div class="loading-spinner" style="padding: 15px; color: var(--danger-color);">加载商品失败</div>';
         });
 }
+
+/* --------------------------------------------------
+ * 12. Sales Statistics & Quantity Analytics Module
+ * -------------------------------------------------- */
+function setupSalesModule() {
+    // 1. Date quick pills click handler
+    const datePills = document.querySelectorAll('#sales-date-pills .date-pill');
+    datePills.forEach(pill => {
+        pill.addEventListener('click', (e) => {
+            datePills.forEach(p => p.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+
+            const range = e.currentTarget.getAttribute('data-range');
+            setSalesDateRange(range);
+
+            state.salesPagination.page = 1;
+            loadSalesViewData();
+        });
+    });
+
+    // 2. Custom Date inputs change handler
+    const handleSalesCustomDateChange = () => {
+        datePills.forEach(p => p.classList.remove('active'));
+        state.salesPagination.page = 1;
+        loadSalesViewData();
+    };
+
+    const startDatePicker = document.getElementById('sales-start-date');
+    const endDatePicker = document.getElementById('sales-end-date');
+    if (startDatePicker) startDatePicker.addEventListener('change', handleSalesCustomDateChange);
+    if (endDatePicker) endDatePicker.addEventListener('change', handleSalesCustomDateChange);
+
+    // 3. Search input debounce
+    let salesSearchTimeout;
+    const salesSearchInput = document.getElementById('sales-search-input');
+    if (salesSearchInput) {
+        salesSearchInput.addEventListener('input', () => {
+            clearTimeout(salesSearchTimeout);
+            salesSearchTimeout = setTimeout(() => {
+                state.salesPagination.page = 1;
+                loadSalesViewData();
+            }, 350);
+        });
+    }
+
+    // 4. Type filter change
+    const salesFilterType = document.getElementById('sales-filter-type');
+    if (salesFilterType) {
+        salesFilterType.addEventListener('change', () => {
+            state.salesPagination.page = 1;
+            loadSalesLogsList();
+        });
+    }
+
+    // 5. Export Sales CSV Button
+    const exportBtn = document.getElementById('export-sales-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportSalesCsv);
+    }
+
+    // Initialize default date range to last 7 days
+    setSalesDateRange('last_7_days');
+}
+
+function setSalesDateRange(rangeKey) {
+    const startDateInput = document.getElementById('sales-start-date');
+    const endDateInput = document.getElementById('sales-end-date');
+    if (!startDateInput || !endDateInput) return;
+
+    const now = new Date();
+
+    if (rangeKey === 'all') {
+        startDateInput.value = '';
+        endDateInput.value = '';
+    } else if (rangeKey === 'today') {
+        const todayStr = formatDateYMD(now);
+        startDateInput.value = todayStr;
+        endDateInput.value = todayStr;
+    } else if (rangeKey === 'yesterday') {
+        const yest = new Date(now);
+        yest.setDate(yest.getDate() - 1);
+        const yestStr = formatDateYMD(yest);
+        startDateInput.value = yestStr;
+        endDateInput.value = yestStr;
+    } else if (rangeKey === 'last_7_days') {
+        const endStr = formatDateYMD(now);
+        const start7 = new Date(now);
+        start7.setDate(start7.getDate() - 6);
+        startDateInput.value = formatDateYMD(start7);
+        endDateInput.value = endStr;
+    } else if (rangeKey === 'last_30_days') {
+        const endStr = formatDateYMD(now);
+        const start30 = new Date(now);
+        start30.setDate(start30.getDate() - 29);
+        startDateInput.value = formatDateYMD(start30);
+        endDateInput.value = endStr;
+    } else if (rangeKey === 'this_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        startDateInput.value = formatDateYMD(firstDay);
+        endDateInput.value = formatDateYMD(now);
+    } else if (rangeKey === 'last_month') {
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        startDateInput.value = formatDateYMD(firstDayLastMonth);
+        endDateInput.value = formatDateYMD(lastDayLastMonth);
+    }
+}
+
+function getSalesFilterParams() {
+    const startDate = document.getElementById('sales-start-date')?.value || '';
+    const endDate = document.getElementById('sales-end-date')?.value || '';
+    const search = document.getElementById('sales-search-input')?.value.trim() || '';
+    const type = document.getElementById('sales-filter-type')?.value || '';
+    return { startDate, endDate, search, type };
+}
+
+function loadSalesViewData() {
+    loadSalesOverview();
+    loadSalesTrends();
+    loadSalesRankingsTable();
+}
+
+function loadSalesOverview() {
+    const { startDate, endDate, search } = getSalesFilterParams();
+    const url = `api/sales.php?action=overview&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&search=${encodeURIComponent(search)}`;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const totalOutEl = document.getElementById('sales-metric-total-out');
+            const totalReEl = document.getElementById('sales-metric-total-re');
+            const netSalesEl = document.getElementById('sales-metric-net-sales');
+            const activeItemsEl = document.getElementById('sales-metric-active-items');
+            const orderCountEl = document.getElementById('sales-metric-order-count');
+
+            if (totalOutEl) totalOutEl.innerHTML = `${data.total_out_qty || 0} <span class="metric-unit">件</span>`;
+            if (totalReEl) totalReEl.innerHTML = `${data.total_return_qty || 0} <span class="metric-unit">件</span>`;
+            if (netSalesEl) netSalesEl.innerHTML = `${data.net_sales_qty || 0} <span class="metric-unit">件</span>`;
+            if (activeItemsEl) activeItemsEl.innerHTML = `${data.active_products_count || 0} <span class="metric-unit">种</span>`;
+            if (orderCountEl) orderCountEl.innerHTML = `${data.out_transactions_count || 0} <span class="metric-unit">笔</span>`;
+        })
+        .catch(err => {
+            console.error('Failed to load sales overview:', err);
+        });
+}
+
+function loadSalesTrends() {
+    const { startDate, endDate, search } = getSalesFilterParams();
+    const url = `api/sales.php?action=trends&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&search=${encodeURIComponent(search)}`;
+    const canvas = document.getElementById('salesTrendsChart');
+    const emptyState = document.getElementById('sales-trends-empty');
+    if (!canvas) return;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const trends = data.trends || [];
+            
+            if (trends.length === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+                canvas.style.display = 'none';
+                if (state.salesChartInstance) {
+                    state.salesChartInstance.destroy();
+                    state.salesChartInstance = null;
+                }
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+            canvas.style.display = 'block';
+
+            const labels = trends.map(t => {
+                // Shorten date format MM-DD
+                const parts = t.date.split('-');
+                return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : t.date;
+            });
+            const outData = trends.map(t => t.out_qty);
+            const returnData = trends.map(t => t.return_qty);
+
+            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            if (state.salesChartInstance) {
+                state.salesChartInstance.destroy();
+                state.salesChartInstance = null;
+            }
+
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js is not loaded');
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            state.salesChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '销售出库量',
+                            data: outData,
+                            backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                            borderColor: '#6366f1',
+                            borderWidth: 1.5,
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
+                        },
+                        {
+                            label: '销售退货量',
+                            data: returnData,
+                            backgroundColor: 'rgba(244, 63, 94, 0.75)',
+                            borderColor: '#f43f5e',
+                            borderWidth: 1.5,
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Used custom header legend tags
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.95)',
+                            titleColor: isDark ? '#f8fafc' : '#0f172a',
+                            bodyColor: isDark ? '#cbd5e1' : '#334155',
+                            borderColor: isDark ? '#334155' : '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 4,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.parsed.y} 件`;
+                                },
+                                footer: function(tooltipItems) {
+                                    if (tooltipItems.length >= 2) {
+                                        const out = tooltipItems[0].parsed.y || 0;
+                                        const re = tooltipItems[1].parsed.y || 0;
+                                        return `净销量: ${out - re} 件`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11 },
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(err => {
+            console.error('Failed to load sales trends:', err);
+        });
+}
+
+function loadSalesRankingsTable() {
+    const { startDate, endDate, search } = getSalesFilterParams();
+    const page = state.salesPagination.page || 1;
+    const url = `api/sales.php?action=ranking_list&page=${page}&limit=15&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&search=${encodeURIComponent(search)}`;
+    const container = document.getElementById('sales-logs-table-container');
+    const totalCountEl = document.getElementById('sales-logs-total-count');
+    if (!container) return;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const list = data.ranking || [];
+            const pagination = data.pagination || { total_items: 0, total_pages: 1 };
+            state.salesPagination = pagination;
+
+            if (totalCountEl) {
+                totalCountEl.textContent = `共 ${pagination.total_items} 款动销商品`;
+            }
+
+            container.innerHTML = '';
+            if (list.length === 0) {
+                container.innerHTML = '<div class="chart-empty-state"><i class="fa-solid fa-ranking-star" style="opacity: 0.3;"></i><p>所选时段暂无商品销售出库记录</p></div>';
+                renderPagination('sales-logs-pagination', state.salesPagination, () => {});
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.className = 'logs-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th style="width: 70px; text-align: center;">排名</th>
+                        <th>商品名称</th>
+                        <th>型号 / 规格</th>
+                        <th style="text-align: right; width: 140px;">销售出库量</th>
+                        <th style="text-align: right; width: 130px;">销售退货量</th>
+                        <th style="text-align: right; width: 140px;">实际净销量</th>
+                        <th style="text-align: center; width: 110px;">出库频次</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+
+            const tbody = table.querySelector('tbody');
+            list.forEach(r => {
+                let badgeHtml = '';
+                if (r.rank === 1) {
+                    badgeHtml = '<div class="rank-badge top-1" style="margin: 0 auto; width: 24px; height: 24px; font-size: 11px;">1</div>';
+                } else if (r.rank === 2) {
+                    badgeHtml = '<div class="rank-badge top-2" style="margin: 0 auto; width: 24px; height: 24px; font-size: 11px;">2</div>';
+                } else if (r.rank === 3) {
+                    badgeHtml = '<div class="rank-badge top-3" style="margin: 0 auto; width: 24px; height: 24px; font-size: 11px;">3</div>';
+                } else {
+                    badgeHtml = `<div class="rank-badge" style="margin: 0 auto; width: 24px; height: 24px; font-size: 11px;">${r.rank}</div>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center;">${badgeHtml}</td>
+                    <td style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${escapeHtml(r.name)}</td>
+                    <td style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(r.model || '--')}</td>
+                    <td style="text-align: right; font-weight: 700; font-size: 14px; color: var(--primary-color);">${r.out_qty} 件</td>
+                    <td style="text-align: right; font-size: 13px; color: ${r.return_qty > 0 ? 'var(--danger-color); font-weight: 600;' : 'var(--text-light);'}">${r.return_qty > 0 ? `${r.return_qty} 件` : '--'}</td>
+                    <td style="text-align: right; font-weight: 700; font-size: 14px; color: var(--success-color);">${r.net_qty} 件</td>
+                    <td style="text-align: center; font-size: 13px; color: var(--text-secondary);">${r.out_count} 笔</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            container.appendChild(table);
+
+            // Render pagination
+            renderPagination('sales-logs-pagination', state.salesPagination, (targetPage) => {
+                state.salesPagination.page = targetPage;
+                loadSalesRankingsTable();
+            });
+        })
+        .catch(err => {
+            container.innerHTML = `<div class="alert alert-danger" style="margin: 10px;">加载排行榜失败: ${escapeHtml(err.message)}</div>`;
+        });
+}
+
+function exportSalesCsv() {
+    const { startDate, endDate, search } = getSalesFilterParams();
+    const url = `api/sales.php?action=export&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&search=${encodeURIComponent(search)}`;
+    showToast('正在准备导出销售数量排行榜...');
+    window.location.href = url;
+}
+
