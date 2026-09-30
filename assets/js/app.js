@@ -13,7 +13,8 @@ const state = {
         requiredProductFields: 'name',
         searchNumberConvert: 'true',
         searchSymbolConvert: 'true',
-        searchSpaceIgnore: 'true'
+        searchSpaceIgnore: 'true',
+        enableCirculation: 'false'
     },
     activeSearchFields: ['name', 'model', 'spec', 'barcode', 'brand', 'local', 'mark'],
     searchFieldsModifiedByUser: false,
@@ -373,6 +374,12 @@ function loadSettings() {
                 searchSpaceIgnore.checked = (state.settings.searchSpaceIgnore !== 'false');
             }
 
+            // Apply enable circulation checkbox in Settings view
+            const enableCirculation = document.getElementById('setting-enable-circulation');
+            if (enableCirculation) {
+                enableCirculation.checked = (state.settings.enableCirculation === 'true');
+            }
+
             // If user hasn't explicitly toggled search chips in this session, sync activeSearchFields with default
             if (!state.searchFieldsModifiedByUser) {
                 const defaultFieldsStr = state.settings.defaultSearchFields || 'name,model,spec,barcode,brand,local,mark';
@@ -387,6 +394,7 @@ function loadSettings() {
             if (searchNumConvert) searchNumConvert.disabled = !isAdmin;
             if (searchSymbolConvert) searchSymbolConvert.disabled = !isAdmin;
             if (searchSpaceIgnore) searchSpaceIgnore.disabled = !isAdmin;
+            if (enableCirculation) enableCirculation.disabled = !isAdmin;
 
             document.querySelectorAll('#setting-search-fields-list input[name="default-search-fields"]').forEach(chk => {
                 chk.disabled = !isAdmin;
@@ -825,6 +833,51 @@ function setupForms() {
             .catch(err => showToast(err.message));
     });
 
+    // C2. Product Circulation Form (Automatic 1 In + 1 Out)
+    const circulationForm = document.getElementById('circulation-form');
+    if (circulationForm) {
+        circulationForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const prodId = document.getElementById('circulate-selected-product-id').value;
+            if (!prodId) {
+                showToast('请先选择要流转的商品！');
+                return;
+            }
+
+            const qtyVal = parseInt(document.getElementById('circulate-quantity').value, 10);
+            if (isNaN(qtyVal) || qtyVal <= 0) {
+                showToast('流转数量必须大于0！');
+                return;
+            }
+
+            const payload = {
+                product_id: prodId,
+                quantity: qtyVal,
+                mark: document.getElementById('circulate-mark').value.trim()
+            };
+
+            fetch('api/stock.php?action=circulate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.error); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || '商品流转记录成功');
+                        closeModal('circulation-modal');
+                        loadViewData(state.currentView);
+                    }
+                })
+                .catch(err => showToast(err.message));
+        });
+    }
+
     // D. Global Rules Settings
     const settingsForm = document.getElementById('global-settings-form');
     if (settingsForm) {
@@ -856,6 +909,9 @@ function setupForms() {
             // Gather search space ignore setting
             const searchSpaceIgnore = document.getElementById('setting-search-space-ignore')?.checked ? 'true' : 'false';
 
+            // Gather enable circulation setting
+            const enableCirculation = document.getElementById('setting-enable-circulation')?.checked ? 'true' : 'false';
+
             fetch('api/settings.php', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -866,7 +922,8 @@ function setupForms() {
                     requiredProductFields: requiredProductFields,
                     searchNumberConvert: searchNumberConvert,
                     searchSymbolConvert: searchSymbolConvert,
-                    searchSpaceIgnore: searchSpaceIgnore
+                    searchSpaceIgnore: searchSpaceIgnore,
+                    enableCirculation: enableCirculation
                 })
             })
                 .then(res => {
@@ -1275,6 +1332,7 @@ function loadProductsList() {
                     <td style="text-align: center; vertical-align: middle;">
                         <div class="table-actions" style="display: flex; justify-content: center; gap: 6px;">
                             <button class="btn btn-sm btn-primary adjust-stock-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-right-left"></i> 出入</button>
+                            ${(state.settings.enableCirculation === 'true') ? `<button class="btn btn-sm circulation-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25);" title="商品流转（自动执行一次入库和一次同数量的出库）"><i class="fa-solid fa-arrows-rotate"></i> 流转</button>` : ''}
                             <button class="btn btn-sm btn-secondary edit-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-pen-to-square"></i> 编辑</button>
                             ${tableDeleteActionHtml}
                         </div>
@@ -1335,6 +1393,7 @@ function loadProductsList() {
                                 </div>
                                 <div class="card-actions-area">
                                     <button class="btn-icon adjust-stock-btn" data-id="${p.id}" style="background: var(--primary-light); color: var(--primary-color);" title="快捷出入库"><i class="fa-solid fa-right-left"></i></button>
+                                    ${(state.settings.enableCirculation === 'true') ? `<button class="btn-icon circulation-item-btn" data-id="${p.id}" style="background: rgba(59, 130, 246, 0.12); color: #2563eb;" title="商品流转（自动执行一次入库和一次同数量的出库）"><i class="fa-solid fa-arrows-rotate"></i></button>` : ''}
                                     <button class="btn-icon edit-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary);" title="编辑商品"><i class="fa-solid fa-pen-to-square"></i></button>
                                     ${cardDeleteActionHtml}
                                 </div>
@@ -1651,6 +1710,15 @@ function attachProductCardEvents() {
             e.stopPropagation();
             const id = e.currentTarget.getAttribute('data-id');
             openQuickTransactionModal(id);
+        });
+    });
+
+    // Product circulation
+    document.querySelectorAll('.circulation-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = e.currentTarget.getAttribute('data-id');
+            openCirculationModal(id);
         });
     });
 
@@ -2866,6 +2934,47 @@ function openQuickTransactionModal(productId = null, defaultType = 'in') {
     }
 
     openModal('quick-transaction-modal');
+}
+
+function openCirculationModal(productId) {
+    if (!productId) return;
+    const hiddenId = document.getElementById('circulate-selected-product-id');
+    const preview = document.getElementById('circulate-product-preview');
+    const qtyInput = document.getElementById('circulate-quantity');
+    const markInput = document.getElementById('circulate-mark');
+
+    if (hiddenId) hiddenId.value = productId;
+    if (qtyInput) qtyInput.value = '1';
+    if (markInput) markInput.value = '';
+
+    if (preview) {
+        preview.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> 正在加载商品...</div>';
+    }
+
+    fetch(`api/products.php?id=${productId}`)
+        .then(res => res.json())
+        .then(p => {
+            if (preview && p) {
+                let text = p.name;
+                if (p.model) text += ` (${p.model})`;
+                preview.innerHTML = `
+                    <div class="selected-prod-info">
+                        <h4>已选商品</h4>
+                        <p>${escapeHtml(text)}</p>
+                    </div>
+                    <div class="selected-prod-stock">
+                        当前库存: <strong>${p.stock}</strong> ${escapeHtml(p.unit || '个')}
+                    </div>
+                `;
+            }
+        })
+        .catch(() => {
+            if (preview) {
+                preview.innerHTML = '<div style="color: var(--danger-color); font-size: 12px;"><i class="fa-solid fa-circle-exclamation"></i> 加载商品信息失败</div>';
+            }
+        });
+
+    openModal('circulation-modal');
 }
 
 // Mobile top floating toast messages utility

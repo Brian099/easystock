@@ -519,6 +519,20 @@
                                     </div>
                                 </div>
 
+                                <!-- Setting Item: Enable circulation -->
+                                <div class="setting-item-box">
+                                    <div class="toggle-group">
+                                        <div class="toggle-label-desc">
+                                            <label for="setting-enable-circulation"><i class="fa-solid fa-arrows-rotate"></i> 启用商品流转功能</label>
+                                            <p>开启后在商品列表“出入库”和“编辑”之间显示“流转”按钮，点击后自动记录一次入库和一次同数量的出库操作，不改变商品当前总库存。</p>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="setting-enable-circulation">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <!-- Setting Item 2: Required product fields -->
                                 <div class="setting-item-box">
                                     <label><i class="fa-solid fa-list-check"></i> 商品属性必填项设置</label>
@@ -945,6 +959,46 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
                         <button type="submit" class="btn btn-primary" id="quick-txn-submit-btn">确认入库</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- B2. Circulation Modal -->
+        <div id="circulation-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-arrows-rotate" style="color: #2563eb;"></i> 商品流转</h3>
+                    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="circulation-form">
+                    <input type="hidden" id="circulate-selected-product-id" required>
+                    <div class="modal-body">
+                        <div class="alert alert-info" style="font-size: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); color: #2563eb; border-radius: var(--border-radius-sm); padding: 8px 12px;">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>流转将自动记录一笔入库和一笔同数量的出库流水，当前商品总库存数值保持不变。</span>
+                        </div>
+                        <div id="circulate-product-preview" class="txn-selected-product-preview" style="margin-bottom: 14px;">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div class="input-group">
+                            <label for="circulate-quantity">流转数量 *</label>
+                            <div class="quantity-input-touch-stepper">
+                                <button type="button" class="stepper-btn minus"
+                                    onclick="document.getElementById('circulate-quantity').value = Math.max(1, parseInt(document.getElementById('circulate-quantity').value || 1)-1)">-</button>
+                                <input type="number" id="circulate-quantity" value="1" min="1" required>
+                                <button type="button" class="stepper-btn plus"
+                                    onclick="document.getElementById('circulate-quantity').value = parseInt(document.getElementById('circulate-quantity').value || 0)+1">+</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="circulate-mark">流转备注 / 说明</label>
+                            <input type="text" id="circulate-mark" placeholder="如: 订单编号、调货去向、客户名称等">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+                        <button type="submit" class="btn btn-primary" style="background: #2563eb; border-color: #2563eb;"><i class="fa-solid fa-arrows-rotate"></i> 确认流转</button>
                     </div>
                 </form>
             </div>

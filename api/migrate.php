@@ -209,6 +209,39 @@ try {
     record_step($results, 'setting.searchSpaceIgnore', 'error', '迁移失败: ' . $e->getMessage());
 }
 
+// ----------------------------------------------------
+// Migration 6: Add enableCirculation to setting table
+// ----------------------------------------------------
+try {
+    $has_circulate_col = false;
+    try {
+        $chk6 = $pdo->query("SELECT enableCirculation FROM setting LIMIT 1");
+        if ($chk6 !== false) {
+            $has_circulate_col = true;
+        }
+    } catch (Throwable $e) {
+        $has_circulate_col = false;
+    }
+
+    if ($has_circulate_col) {
+        record_step($results, 'setting.enableCirculation', 'already_exists', '字段 enableCirculation 已存在，无需重复添加');
+    } else {
+        $default_circulate_val = 'false';
+        if ($db_type === 'mysql') {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `enableCirculation` VARCHAR(10) NOT NULL DEFAULT '$default_circulate_val' COMMENT '是否启用商品流转功能'";
+        } else {
+            $sql = "ALTER TABLE `setting` ADD COLUMN `enableCirculation` TEXT NOT NULL DEFAULT '$default_circulate_val'";
+        }
+
+        $pdo->exec($sql);
+        $pdo->exec("UPDATE `setting` SET `enableCirculation` = '$default_circulate_val' WHERE `enableCirculation` IS NULL OR `enableCirculation` = ''");
+        record_step($results, 'setting.enableCirculation', 'success', '成功为 setting 表新增 enableCirculation 字段');
+    }
+} catch (Throwable $e) {
+    $results['success'] = false;
+    record_step($results, 'setting.enableCirculation', 'error', '迁移失败: ' . $e->getMessage());
+}
+
 // Output response
 if ($is_cli) {
     echo "========================================\n";

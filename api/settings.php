@@ -11,7 +11,7 @@ if ($method === 'GET') {
     $stmt = null;
     $row = false;
     try {
-        $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert, searchSymbolConvert, searchSpaceIgnore FROM setting WHERE id = 1 LIMIT 1");
+        $stmt = $pdo->query("SELECT allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert, searchSymbolConvert, searchSpaceIgnore, enableCirculation FROM setting WHERE id = 1 LIMIT 1");
         $row = $stmt ? $stmt->fetch() : false;
     } catch (Throwable $e) {
         // Fallback
@@ -23,6 +23,7 @@ if ($method === 'GET') {
     $searchNumberConvert = (($row['searchNumberConvert'] ?? 'true') === 'false') ? 'false' : 'true';
     $searchSymbolConvert = (($row['searchSymbolConvert'] ?? 'true') === 'false') ? 'false' : 'true';
     $searchSpaceIgnore = (($row['searchSpaceIgnore'] ?? 'true') === 'false') ? 'false' : 'true';
+    $enableCirculation = (($row['enableCirculation'] ?? 'false') === 'true') ? 'true' : 'false';
     
     $setting = [
         'id' => 1,
@@ -32,7 +33,8 @@ if ($method === 'GET') {
         'requiredProductFields' => $requiredProductFields,
         'searchNumberConvert' => $searchNumberConvert,
         'searchSymbolConvert' => $searchSymbolConvert,
-        'searchSpaceIgnore' => $searchSpaceIgnore
+        'searchSpaceIgnore' => $searchSpaceIgnore,
+        'enableCirculation' => $enableCirculation
     ];
     
     // 2. Aggregate unique brands, units, and locations directly from products table
@@ -104,15 +106,21 @@ elseif ($method === 'PUT') {
         $searchSpaceIgnore = 'true';
     }
 
+    // Validate enable circulation switch
+    $enableCirculation = trim($input['enableCirculation'] ?? 'false');
+    if (!in_array($enableCirculation, ['true', 'false'])) {
+        $enableCirculation = 'false';
+    }
+
     try {
         // Standard SQL update/insert compatible with both SQLite and MySQL
-        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ?, defaultSearchFields = ?, requiredProductFields = ?, searchNumberConvert = ?, searchSymbolConvert = ?, searchSpaceIgnore = ? WHERE id = 1");
-        $stmt->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert, $searchSymbolConvert, $searchSpaceIgnore]);
+        $stmt = $pdo->prepare("UPDATE setting SET allowEditStock = ?, companyName = ?, defaultSearchFields = ?, requiredProductFields = ?, searchNumberConvert = ?, searchSymbolConvert = ?, searchSpaceIgnore = ?, enableCirculation = ? WHERE id = 1");
+        $stmt->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert, $searchSymbolConvert, $searchSpaceIgnore, $enableCirculation]);
         
         $chk = $pdo->query("SELECT id FROM setting WHERE id = 1");
         if (!$chk->fetch()) {
-            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert, searchSymbolConvert, searchSpaceIgnore) VALUES (1, ?, ?, ?, ?, ?, ?, ?)");
-            $ins->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert, $searchSymbolConvert, $searchSpaceIgnore]);
+            $ins = $pdo->prepare("INSERT INTO setting (id, allowEditStock, companyName, defaultSearchFields, requiredProductFields, searchNumberConvert, searchSymbolConvert, searchSpaceIgnore, enableCirculation) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $ins->execute([$allowEditStock, $companyName, $cleanDefaultSearchFields, $cleanRequiredProductFields, $searchNumberConvert, $searchSymbolConvert, $searchSpaceIgnore, $enableCirculation]);
         }
         
         send_json([
@@ -125,7 +133,8 @@ elseif ($method === 'PUT') {
                 'requiredProductFields' => $cleanRequiredProductFields,
                 'searchNumberConvert' => $searchNumberConvert,
                 'searchSymbolConvert' => $searchSymbolConvert,
-                'searchSpaceIgnore' => $searchSpaceIgnore
+                'searchSpaceIgnore' => $searchSpaceIgnore,
+                'enableCirculation' => $enableCirculation
             ]
         ]);
     } catch (Exception $e) {

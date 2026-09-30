@@ -117,7 +117,8 @@ if ($db_type === 'sqlite') {
       `requiredProductFields` TEXT NOT NULL DEFAULT 'name',
       `searchNumberConvert` TEXT NOT NULL DEFAULT 'true',
       `searchSymbolConvert` TEXT NOT NULL DEFAULT 'true',
-      `searchSpaceIgnore` TEXT NOT NULL DEFAULT 'true'
+      `searchSpaceIgnore` TEXT NOT NULL DEFAULT 'true',
+      `enableCirculation` TEXT NOT NULL DEFAULT 'false'
     );
 
     CREATE TABLE IF NOT EXISTS `stock_log` (
@@ -150,7 +151,7 @@ if ($db_type === 'sqlite') {
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`, `searchSymbolConvert`, `searchSpaceIgnore`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true', 'true', 'true');
+    INSERT OR IGNORE INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`, `searchSymbolConvert`, `searchSpaceIgnore`, `enableCirculation`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true', 'true', 'true', 'false');
     ";
 
 } else {
@@ -220,6 +221,7 @@ if ($db_type === 'sqlite') {
       `searchNumberConvert` varchar(10) NOT NULL DEFAULT 'true' COMMENT '搜索商品时是否启用数字大小写/汉字自动转换',
       `searchSymbolConvert` varchar(10) NOT NULL DEFAULT 'true' COMMENT '搜索商品时是否启用符号自动互换',
       `searchSpaceIgnore` varchar(10) NOT NULL DEFAULT 'true' COMMENT '搜索商品时是否忽略空格差异',
+      `enableCirculation` varchar(10) NOT NULL DEFAULT 'false' COMMENT '是否启用商品流转功能',
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -257,8 +259,8 @@ if ($db_type === 'sqlite') {
       UNIQUE KEY `idx_user_username` (`username`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`, `searchSymbolConvert`, `searchSpaceIgnore`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true', 'true', 'true')
-    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`), `requiredProductFields` = VALUES(`requiredProductFields`), `searchNumberConvert` = VALUES(`searchNumberConvert`), `searchSymbolConvert` = VALUES(`searchSymbolConvert`), `searchSpaceIgnore` = VALUES(`searchSpaceIgnore`);
+    INSERT INTO `setting` (`id`, `allowEditStock`, `companyName`, `defaultSearchFields`, `requiredProductFields`, `searchNumberConvert`, `searchSymbolConvert`, `searchSpaceIgnore`, `enableCirculation`) VALUES (1, 'false', '', 'name,model,spec,barcode,brand,local,mark', 'name', 'true', 'true', 'true', 'false')
+    ON DUPLICATE KEY UPDATE `allowEditStock` = VALUES(`allowEditStock`), `companyName` = VALUES(`companyName`), `defaultSearchFields` = VALUES(`defaultSearchFields`), `requiredProductFields` = VALUES(`requiredProductFields`), `searchNumberConvert` = VALUES(`searchNumberConvert`), `searchSymbolConvert` = VALUES(`searchSymbolConvert`), `searchSpaceIgnore` = VALUES(`searchSpaceIgnore`), `enableCirculation` = VALUES(`enableCirculation`);
     ";
 }
 

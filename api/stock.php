@@ -229,6 +229,86 @@ elseif ($method === 'POST') {
             $pdo->rollBack();
             send_json(['error' => 'Transaction failed: ' . $e->getMessage()], 500);
         }
+    }
+    // Action 2: Automatic Circulation (1 In log + 1 Out log with same quantity)
+    elseif ($action === 'circulate') {
+        $input = get_json_input();
+        
+        $product_id = (int)($input['product_id'] ?? 0);
+        $quantity = (int)($input['quantity'] ?? 0);
+        $mark = trim($input['mark'] ?? '');
+        
+        if (!$product_id) {
+            send_json(['error' => '请选择要流转的商品'], 400);
+        }
+        
+        if ($quantity <= 0) {
+            send_json(['error' => '流转数量必须为大于0的正整数'], 400);
+        }
+        
+        try {
+            $pdo->beginTransaction();
+            
+            // Lock product record
+            $stmt = $pdo->prepare("SELECT name, model, stock FROM products WHERE id = ? FOR UPDATE");
+            $stmt->execute([$product_id]);
+            $product = $stmt->fetch();
+            
+            if (!$product) {
+                $pdo->rollBack();
+                send_json(['error' => '未找到指定商品'], 404);
+            }
+            
+            $history_name = $product['name'];
+            $history_model_base = $product['model'];
+            
+            $in_mark_note = $mark !== '' ? "{$mark} (流转入库)" : "流转入库";
+            $out_mark_note = $mark !== '' ? "{$mark} (流转出库)" : "流转出库";
+            
+            $history_model_in = $history_model_base !== '' ? "{$history_model_base} ({$in_mark_note})" : $in_mark_note;
+            $history_model_out = $history_model_base !== '' ? "{$history_model_base} ({$out_mark_note})" : $out_mark_note;
+            
+            $has_mark_col = false;
+            try {
+                $chk = $pdo->query("SELECT mark FROM stock_log LIMIT 1");
+                $has_mark_col = ($chk !== false);
+            } catch (Throwable $e) {
+                $has_mark_col = false;
+            }
+            
+            if ($has_mark_col) {
+                $log_stmt = $pdo->prepare("
+                    INSERT INTO stock_log (product_id, history_name, history_model, user_id, type, quantity, mark) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+                // 1. Insert In log (+quantity)
+                $log_stmt->execute([$product_id, $history_name, $history_model_in, $currentUser['id'], 'in', $quantity, $in_mark_note]);
+                // 2. Insert Out log (-quantity)
+                $log_stmt->execute([$product_id, $history_name, $history_model_out, $currentUser['id'], 'out', -$quantity, $out_mark_note]);
+            } else {
+                $log_stmt = $pdo->prepare("
+                    INSERT INTO stock_log (product_id, history_name, history_model, user_id, type, quantity) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                // 1. Insert In log (+quantity)
+                $log_stmt->execute([$product_id, $history_name, $history_model_in, $currentUser['id'], 'in', $quantity]);
+                // 2. Insert Out log (-quantity)
+                $log_stmt->execute([$product_id, $history_name, $history_model_out, $currentUser['id'], 'out', -$quantity]);
+            }
+            
+            $pdo->commit();
+            
+            send_json([
+                'success' => true,
+                'product_id' => $product_id,
+                'name' => $product['name'],
+                'quantity' => $quantity,
+                'message' => '商品流转成功，已自动记录一笔入库和一笔出库流水'
+            ]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            send_json(['error' => '流转操作失败: ' . $e->getMessage()], 500);
+        }
     } else {
         send_json(['error' => 'Invalid POST action.'], 400);
     }
