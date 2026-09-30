@@ -1275,7 +1275,6 @@ function loadProductsList() {
                     <td style="text-align: center; vertical-align: middle;">
                         <div class="table-actions" style="display: flex; justify-content: center; gap: 6px;">
                             <button class="btn btn-sm btn-primary adjust-stock-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-right-left"></i> 出入</button>
-                            <button class="btn btn-sm btn-secondary copy-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;" title="复制并快速新增类似商品"><i class="fa-solid fa-copy"></i> 复制</button>
                             <button class="btn btn-sm btn-secondary edit-item-btn" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-pen-to-square"></i> 编辑</button>
                             ${tableDeleteActionHtml}
                         </div>
@@ -1336,7 +1335,6 @@ function loadProductsList() {
                                 </div>
                                 <div class="card-actions-area">
                                     <button class="btn-icon adjust-stock-btn" data-id="${p.id}" style="background: var(--primary-light); color: var(--primary-color);" title="快捷出入库"><i class="fa-solid fa-right-left"></i></button>
-                                    <button class="btn-icon copy-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary);" title="复制并快速新增类似商品"><i class="fa-solid fa-copy"></i></button>
                                     <button class="btn-icon edit-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary);" title="编辑商品"><i class="fa-solid fa-pen-to-square"></i></button>
                                     ${cardDeleteActionHtml}
                                 </div>
@@ -1389,9 +1387,14 @@ function buildProductDetailPanelHtml(p, prefix = 'desktop') {
         <div class="product-expand-panel">
             <!-- Top: Attributes Grid -->
             <div class="detail-grid">
-                <div class="detail-item" style="grid-column: 1 / -1;">
-                    <span class="detail-item-label">商品名称</span>
-                    <div class="detail-item-val" style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); word-break: break-word; white-space: normal; line-height: 1.4;">${escapeHtml(p.name)}</div>
+                <div class="detail-item" style="grid-column: 1 / -1; display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <span class="detail-item-label">商品名称</span>
+                        <div class="detail-item-val" style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); word-break: break-word; white-space: normal; line-height: 1.4;">${escapeHtml(p.name)}</div>
+                    </div>
+                    <button type="button" class="btn-icon copy-item-btn" data-id="${p.id}" style="background: var(--border-color); color: var(--text-secondary); flex-shrink: 0; width: 32px; height: 32px;" title="复制并快速新增类似商品">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
                 </div>
                 <div class="detail-item">
                     <span class="detail-item-label">条形码 / 编码</span>
@@ -1577,6 +1580,15 @@ function attachAccordionInnerEvents(container) {
             e.stopPropagation();
             const barcode = e.currentTarget.getAttribute('data-barcode');
             copyBarcodeToClipboard(barcode);
+        });
+    });
+
+    // Copy item button
+    container.querySelectorAll('.copy-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = e.currentTarget.getAttribute('data-id');
+            openProductFormModal(id, null, true);
         });
     });
 }
