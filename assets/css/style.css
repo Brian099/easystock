@@ -2476,9 +2476,14 @@ input:checked + .slider:before {
 /* Toast Message */
 .toast {
     position: fixed;
-    top: -60px;
+    top: 20px;
     left: 50%;
-    transform: translateX(-50%);
+    /* Move fully off-screen by 200% of its own height so long/multi-line
+       messages are completely hidden, regardless of the toast height. */
+    transform: translate(-50%, -200%);
+    max-width: calc(100% - 40px);
+    box-sizing: border-box;
+    text-align: center;
     background-color: rgba(15, 23, 42, 0.9);
     color: #fff;
     padding: 12px 24px;
@@ -2488,11 +2493,11 @@ input:checked + .slider:before {
     z-index: 1000;
     box-shadow: var(--shadow-lg);
     pointer-events: none;
-    transition: top 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .toast.show {
-    top: 20px;
+    transform: translate(-50%, 0);
 }
 
 /* Loading spinner utility */
