@@ -3570,5 +3570,27 @@ input:checked + .slider:before {
     color: var(--danger-color);
 }
 
+/* --------------------------------------------------
+ * Image Viewer: pinch-to-zoom / pan / double-tap zoom
+ * Page-level zoom stays disabled (viewport user-scalable=no),
+ * so only the enlarged product image is zoomable.
+ * -------------------------------------------------- */
+.viewer-img-container img {
+    touch-action: none !important;
+    transform-origin: center center !important;
+    will-change: transform !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Live gesture: drop the transform transition so zooming tracks the fingers */
+.viewer-img-container img.no-transition {
+    transition: opacity 0.2s ease !important;
+}
+
+.viewer-img-container img.is-zoomed {
+    cursor: zoom-out !important;
+}
+
 
 

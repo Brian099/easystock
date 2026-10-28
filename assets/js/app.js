@@ -3120,6 +3120,75 @@ const viewerState = {
     currentIndex: 0
 };
 
+/* ---- Image viewer zoom state (pinch / pan / double-tap) ---- */
+const viewerZoom = {
+    scale: 1,
+    tx: 0,
+    ty: 0,
+    maxScale: 4,
+    doubleTapScale: 2.5
+};
+
+function getViewerImgEl() {
+    return document.getElementById('viewer-img');
+}
+
+function getViewerContainerEl() {
+    return document.querySelector('.viewer-img-container');
+}
+
+function applyViewerTransform(animate) {
+    const img = getViewerImgEl();
+    if (!img) return;
+    if (animate) {
+        img.classList.remove('no-transition');
+    } else {
+        img.classList.add('no-transition');
+    }
+    img.style.transform = `translate(${viewerZoom.tx}px, ${viewerZoom.ty}px) scale(${viewerZoom.scale})`;
+    img.classList.toggle('is-zoomed', viewerZoom.scale > 1.01);
+}
+
+function clampViewerPan() {
+    const img = getViewerImgEl();
+    const container = getViewerContainerEl();
+    if (!img || !container) return;
+    const maxX = Math.max(0, (img.offsetWidth * viewerZoom.scale - container.clientWidth) / 2);
+    const maxY = Math.max(0, (img.offsetHeight * viewerZoom.scale - container.clientHeight) / 2);
+    viewerZoom.tx = Math.min(maxX, Math.max(-maxX, viewerZoom.tx));
+    viewerZoom.ty = Math.min(maxY, Math.max(-maxY, viewerZoom.ty));
+}
+
+function resetViewerZoom(animate = false) {
+    viewerZoom.scale = 1;
+    viewerZoom.tx = 0;
+    viewerZoom.ty = 0;
+    applyViewerTransform(animate);
+}
+
+/* Zoom in/out around a screen point (double-tap target) */
+function toggleViewerZoomAt(clientX, clientY) {
+    const container = getViewerContainerEl();
+    if (!container) return;
+
+    if (viewerZoom.scale > 1.01) {
+        resetViewerZoom(true);
+        return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const mx = clientX - (rect.left + rect.width / 2);
+    const my = clientY - (rect.top + rect.height / 2);
+    const target = Math.min(viewerZoom.maxScale, viewerZoom.doubleTapScale);
+
+    // Keep the tapped point anchored while scaling
+    viewerZoom.scale = target;
+    viewerZoom.tx = mx * (1 - target);
+    viewerZoom.ty = my * (1 - target);
+    clampViewerPan();
+    applyViewerTransform(true);
+}
+
 function openGalleryModal(productId, initialSrc) {
     viewerState.images = initialSrc ? [initialSrc] : [];
     viewerState.currentIndex = 0;
@@ -3155,6 +3224,7 @@ function updateViewerUI() {
     if (total === 0) return;
 
     if (viewerImg) {
+        resetViewerZoom(false);
         viewerImg.style.opacity = '0.5';
         setTimeout(() => {
             viewerImg.src = viewerState.images[viewerState.currentIndex];
@@ -3224,23 +3294,167 @@ function setupViewerEvents() {
         }
     });
 
-    // Touch swipe gestures for mobile
-    let touchStartX = 0;
-    let touchEndX = 0;
-    const imgContainer = document.querySelector('.viewer-img-container');
-    if (imgContainer) {
-        imgContainer.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-        imgContainer.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 40) {
-                navViewer('next');
-            } else if (touchEndX - touchStartX > 40) {
-                navViewer('prev');
+    // Touch gestures for mobile: pinch-zoom / pan / double-tap zoom / swipe nav
+    setupViewerTouchGestures();
+}
+
+function setupViewerTouchGestures() {
+    const container = getViewerContainerEl();
+    const img = getViewerImgEl();
+    if (!container || !img) return;
+
+    let mode = null; // 'pinch' | 'pan' | 'swipe'
+    let pinchStartDist = 0;
+    let pinchStartScale = 1;
+    let pinchAnchorX = 0; // content point under the pinch midpoint
+    let pinchAnchorY = 0;
+    let pinchCenterX = 0;
+    let pinchCenterY = 0;
+    let panStartX = 0;
+    let panStartY = 0;
+    let panStartTx = 0;
+    let panStartTy = 0;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let lastTapAt = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
+
+    const touchDist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    const touchMid = (a, b) => ({
+        x: (a.clientX + b.clientX) / 2,
+        y: (a.clientY + b.clientY) / 2
+    });
+
+    container.addEventListener('touchstart', (e) => {
+        const modal = document.getElementById('image-viewer-modal');
+        if (!modal || !modal.classList.contains('open')) return;
+
+        if (e.touches.length >= 2) {
+            e.preventDefault();
+            const [a, b] = e.touches;
+            const rect = container.getBoundingClientRect();
+            const mid = touchMid(a, b);
+            pinchCenterX = rect.left + rect.width / 2;
+            pinchCenterY = rect.top + rect.height / 2;
+            pinchStartDist = touchDist(a, b) || 1;
+            pinchStartScale = viewerZoom.scale;
+            // Anchor the image content that sits under the fingers
+            pinchAnchorX = (mid.x - pinchCenterX - viewerZoom.tx) / viewerZoom.scale;
+            pinchAnchorY = (mid.y - pinchCenterY - viewerZoom.ty) / viewerZoom.scale;
+            mode = 'pinch';
+            img.classList.add('no-transition');
+            return;
+        }
+
+        if (e.touches.length === 1) {
+            const t = e.touches[0];
+            if (viewerZoom.scale > 1.01) {
+                mode = 'pan';
+                panStartX = t.clientX;
+                panStartY = t.clientY;
+                panStartTx = viewerZoom.tx;
+                panStartTy = viewerZoom.ty;
+                img.classList.add('no-transition');
+            } else {
+                mode = 'swipe';
+                swipeStartX = t.clientX;
+                swipeStartY = t.clientY;
             }
-        }, { passive: true });
-    }
+        }
+    }, { passive: false });
+
+    container.addEventListener('touchmove', (e) => {
+        if (mode === 'pinch' && e.touches.length >= 2) {
+            e.preventDefault();
+            const [a, b] = e.touches;
+            const mid = touchMid(a, b);
+            const ratio = (touchDist(a, b) || 1) / pinchStartDist;
+            let nextScale = pinchStartScale * ratio;
+            nextScale = Math.min(viewerZoom.maxScale, Math.max(1, nextScale));
+
+            viewerZoom.scale = nextScale;
+            viewerZoom.tx = (mid.x - pinchCenterX) - pinchAnchorX * nextScale;
+            viewerZoom.ty = (mid.y - pinchCenterY) - pinchAnchorY * nextScale;
+            clampViewerPan();
+            applyViewerTransform(false);
+            return;
+        }
+
+        if (mode === 'pan' && e.touches.length === 1) {
+            e.preventDefault();
+            const t = e.touches[0];
+            viewerZoom.tx = panStartTx + (t.clientX - panStartX);
+            viewerZoom.ty = panStartTy + (t.clientY - panStartY);
+            clampViewerPan();
+            applyViewerTransform(false);
+        }
+    }, { passive: false });
+
+    container.addEventListener('touchend', (e) => {
+        // Lifting one finger from a pinch: keep panning with the remaining one
+        if (mode === 'pinch' && e.touches.length === 1) {
+            const t = e.touches[0];
+            mode = 'pan';
+            panStartX = t.clientX;
+            panStartY = t.clientY;
+            panStartTx = viewerZoom.tx;
+            panStartTy = viewerZoom.ty;
+            return;
+        }
+
+        if (mode === 'pinch') {
+            mode = null;
+            if (viewerZoom.scale <= 1.05) {
+                resetViewerZoom(true);
+            } else {
+                clampViewerPan();
+                applyViewerTransform(true);
+            }
+            return;
+        }
+
+        if (mode === 'pan') {
+            mode = null;
+            clampViewerPan();
+            applyViewerTransform(true);
+            return;
+        }
+
+        if (mode === 'swipe' && e.changedTouches.length) {
+            mode = null;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - swipeStartX;
+            const dy = t.clientY - swipeStartY;
+
+            // Tap / double-tap
+            if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+                const now = Date.now();
+                const isDoubleTap = now - lastTapAt < 300 &&
+                    Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 30;
+                if (isDoubleTap) {
+                    lastTapAt = 0;
+                    toggleViewerZoomAt(t.clientX, t.clientY);
+                } else {
+                    lastTapAt = now;
+                    lastTapX = t.clientX;
+                    lastTapY = t.clientY;
+                }
+                return;
+            }
+
+            // Swipe to switch image (only when not zoomed in)
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                navViewer(dx < 0 ? 'next' : 'prev');
+            }
+        }
+    }, { passive: true });
+
+    container.addEventListener('touchcancel', () => {
+        mode = null;
+        clampViewerPan();
+        applyViewerTransform(true);
+    }, { passive: true });
 }
 
 function fetchProductsForTxnSelect(query = '') {
