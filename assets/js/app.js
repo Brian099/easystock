@@ -24,10 +24,15 @@ const state = {
         locals: []
     },
     productsPagination: { page: 1, total_pages: 1 },
+    productPageSize: 15,
     logsPagination: { page: 1, total_pages: 1 },
     salesPagination: { page: 1, total_pages: 1 },
     salesChartInstance: null
 };
+
+// Selectable page sizes for the product list (keep in sync with the limit clamp in api/products.php)
+const PRODUCT_PAGE_SIZES = [15, 30, 50, 100, 200, 500, 1000];
+const PRODUCT_PAGE_SIZE_STORAGE_KEY = 'product_page_size';
 
 // DOM Elements & Event Listeners Cache
 document.addEventListener('DOMContentLoaded', () => {
@@ -43,6 +48,19 @@ function initApp() {
     setupSearchFilters();
     setupSalesModule();
     setupViewerEvents();
+    restoreProductPageSize();
+}
+
+/* Restore the last chosen page size for the product list */
+function restoreProductPageSize() {
+    try {
+        const saved = parseInt(localStorage.getItem(PRODUCT_PAGE_SIZE_STORAGE_KEY) || '', 10);
+        if (PRODUCT_PAGE_SIZES.includes(saved)) {
+            state.productPageSize = saved;
+        }
+    } catch (e) {
+        // localStorage unavailable (private mode) - keep the default
+    }
 }
 
 /* --------------------------------------------------
@@ -1198,12 +1216,13 @@ function loadProductsList() {
     const brand = document.getElementById('product-filter-brand').value;
     const local = document.getElementById('product-filter-local').value;
     const page = state.productsPagination.page;
+    const limit = PRODUCT_PAGE_SIZES.includes(state.productPageSize) ? state.productPageSize : 15;
     const searchFieldsParam = (state.activeSearchFields || []).join(',');
     const convertNumParam = (state.settings?.searchNumberConvert === 'false') ? '0' : '1';
     const convertSymbolParam = (state.settings?.searchSymbolConvert === 'false') ? '0' : '1';
     const ignoreSpaceParam = (state.settings?.searchSpaceIgnore === 'false') ? '0' : '1';
 
-    let url = `api/products.php?page=${page}&limit=15&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}&convert_num=${convertNumParam}&convert_symbol=${convertSymbolParam}&ignore_space=${ignoreSpaceParam}`;
+    let url = `api/products.php?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&brand=${encodeURIComponent(brand)}&local=${encodeURIComponent(local)}&search_fields=${encodeURIComponent(searchFieldsParam)}&convert_num=${convertNumParam}&convert_symbol=${convertSymbolParam}&ignore_space=${ignoreSpaceParam}`;
 
     // Check if we reached this via low-stock warning card
     if (state.filterLowStockOnly) {
@@ -1232,7 +1251,15 @@ function loadProductsList() {
 
             if (data.products.length === 0) {
                 container.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-box-open" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5;"></i><br>暂无商品数据，点击右上角「新增商品」即可添加</div>';
-                document.getElementById('products-pagination').innerHTML = '';
+                // Keep the page-size selector available so the user can widen it again
+                renderPagination('products-pagination', {
+                    current_page: 1,
+                    total_pages: 0,
+                    limit: state.productPageSize
+                }, (targetPage) => {
+                    state.productsPagination.page = targetPage;
+                    loadProductsList();
+                }, buildProductPaginationOpts());
                 return;
             }
 
@@ -1409,11 +1436,11 @@ function loadProductsList() {
             container.appendChild(cardWrapper);
             container.appendChild(tableWrapper);
 
-            // Render pagination controls
+            // Render pagination controls (with page-size selector)
             renderPagination('products-pagination', state.productsPagination, (targetPage) => {
                 state.productsPagination.page = targetPage;
                 loadProductsList();
-            });
+            }, buildProductPaginationOpts());
 
             // Attach card & accordion events
             attachProductCardEvents();
@@ -1759,24 +1786,171 @@ function attachProductCardEvents() {
         });
     });
 
-    // Image zoom click in product list
+    // Product thumbnail: hover shows a medium preview, click opens the full-size viewer
     document.querySelectorAll('.table-thumb').forEach(thumb => {
         thumb.addEventListener('click', (e) => {
             e.stopPropagation();
             const productId = thumb.getAttribute('data-id') || thumb.closest('[data-id]')?.getAttribute('data-id');
+            hideThumbPreview();
             openGalleryModal(productId, thumb.src);
         });
+        thumb.addEventListener('mouseenter', () => showThumbPreview(thumb));
+        thumb.addEventListener('mouseleave', hideThumbPreview);
     });
 }
 
-function renderPagination(elementId, pagination, onPageClick) {
+/* --------------------------------------------------
+ * Product thumbnail hover preview (medium image)
+ * Thumbnail (small) -> hover preview (medium) -> click viewer (large)
+ * The preview is position:fixed on <body> because .table-responsive
+ * has overflow-x:auto and would clip an absolutely-positioned popup.
+ * -------------------------------------------------- */
+let thumbPreviewEl = null;
+
+function ensureThumbPreviewEl() {
+    if (thumbPreviewEl && document.body.contains(thumbPreviewEl)) {
+        return thumbPreviewEl;
+    }
+    thumbPreviewEl = document.createElement('div');
+    thumbPreviewEl.className = 'thumb-hover-preview';
+    const img = document.createElement('img');
+    img.alt = '';
+    thumbPreviewEl.appendChild(img);
+    document.body.appendChild(thumbPreviewEl);
+    return thumbPreviewEl;
+}
+
+function positionThumbPreview(el, thumb) {
+    const PAD = 10;   // min distance from the viewport edge
+    const GAP = 12;   // distance from the thumbnail
+    const t = thumb.getBoundingClientRect();
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Prefer the right side of the thumbnail, flip to the left on overflow
+    let left = t.right + GAP;
+    if (left + w > vw - PAD) {
+        left = t.left - GAP - w;
+    }
+    if (left < PAD) {
+        left = Math.max(PAD, Math.min(t.right + GAP, vw - w - PAD));
+    }
+
+    let top = t.top + (t.height - h) / 2;
+    top = Math.max(PAD, Math.min(top, vh - h - PAD));
+
+    el.style.left = Math.round(left) + 'px';
+    el.style.top = Math.round(top) + 'px';
+}
+
+function showThumbPreview(thumb) {
+    if (!thumb || !thumb.src) return;
+    // Hover is desktop-only; touch devices go straight to the full viewer on tap
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+
+    const el = ensureThumbPreviewEl();
+    const img = el.querySelector('img');
+    if (img.getAttribute('src') !== thumb.src) {
+        img.src = thumb.src;
+    }
+    el.classList.add('visible');
+    positionThumbPreview(el, thumb);
+}
+
+function hideThumbPreview() {
+    if (!thumbPreviewEl) return;
+    thumbPreviewEl.classList.remove('visible');
+}
+
+// Keep the preview from drifting when the list scrolls (inner table scroll included) or resizes
+window.addEventListener('scroll', hideThumbPreview, true);
+window.addEventListener('resize', hideThumbPreview);
+
+/* Page-size options for the product list pagination */
+function buildProductPaginationOpts() {
+    return {
+        pageSizes: PRODUCT_PAGE_SIZES,
+        pageSize: state.productPageSize,
+        onPageSizeChange: (size) => {
+            if (size === state.productPageSize) return;
+            state.productPageSize = size;
+            state.productsPagination.page = 1; // page count changes -> restart from page 1
+            try {
+                localStorage.setItem(PRODUCT_PAGE_SIZE_STORAGE_KEY, String(size));
+            } catch (e) {
+                // ignore storage failures
+            }
+            loadProductsList();
+        }
+    };
+}
+
+/* Page-size selector rendered next to the pagination buttons */
+function buildPageSizeSelector(pagination, opts) {
+    const sizes = opts.pageSizes;
+
+    let current = parseInt(pagination && pagination.limit, 10);
+    if (!sizes.includes(current)) {
+        current = parseInt(opts.pageSize, 10);
+    }
+    if (!sizes.includes(current)) {
+        current = sizes[0];
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'page-size-control';
+
+    const label = document.createElement('span');
+    label.className = 'page-size-label';
+    label.textContent = '每页';
+    wrap.appendChild(label);
+
+    const select = document.createElement('select');
+    select.className = 'page-size-select';
+    select.setAttribute('aria-label', '每页显示数量');
+
+    sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = String(size);
+        option.textContent = String(size);
+        if (size === current) option.selected = true;
+        select.appendChild(option);
+    });
+
+    select.addEventListener('change', () => {
+        const next = parseInt(select.value, 10);
+        if (Number.isFinite(next)) {
+            opts.onPageSizeChange(next);
+        }
+    });
+
+    wrap.appendChild(select);
+
+    const unit = document.createElement('span');
+    unit.className = 'page-size-label';
+    unit.textContent = '条';
+    wrap.appendChild(unit);
+
+    return wrap;
+}
+
+function renderPagination(elementId, pagination, onPageClick, opts = {}) {
     const container = document.getElementById(elementId);
+    if (!container) return;
     container.innerHTML = '';
 
     const curr = pagination.current_page;
     const tot = pagination.total_pages;
 
-    if (tot <= 1) return; // No pagination needed
+    // Optional page-size selector: rendered even on a single page so the
+    // user can widen the page size when results are few
+    if (Array.isArray(opts.pageSizes) && opts.pageSizes.length && typeof opts.onPageSizeChange === 'function') {
+        container.appendChild(buildPageSizeSelector(pagination, opts));
+    }
+
+    if (tot <= 1) return; // No page buttons needed
 
     // Prev button
     const prevBtn = document.createElement('button');
@@ -2587,7 +2761,8 @@ async function addPendingProductImage(file) {
     `;
 
     div.querySelector('img').addEventListener('click', () => {
-        openGalleryModal(null, previewUrl);
+        // Newly picked image: show the product name currently typed in the form
+        openGalleryModal(null, previewUrl, (document.getElementById('prod-name') || {}).value || '');
     });
 
     div.querySelector('.del-img-btn').addEventListener('click', (e) => {
@@ -3115,10 +3290,23 @@ function openUserModal(userId = null, username = '', role = 'user') {
     openModal('user-modal');
 }
 
+const VIEWER_DEFAULT_CAPTION = '双指捏合或双击可缩放图片 · 点击左右按钮或按方向键 (← / →) 切换图片';
+
 const viewerState = {
     images: [],
-    currentIndex: 0
+    currentIndex: 0,
+    title: ''
 };
+
+/* Product name shown under the enlarged image */
+function resolveViewerTitle(productId) {
+    if (!productId) return '';
+    const cached = state.currentProducts ? state.currentProducts[productId] : null;
+    if (cached && cached.name) {
+        return cached.name;
+    }
+    return '';
+}
 
 /* ---- Image viewer zoom state (pinch / pan / double-tap) ---- */
 const viewerZoom = {
@@ -3189,9 +3377,10 @@ function toggleViewerZoomAt(clientX, clientY) {
     applyViewerTransform(true);
 }
 
-function openGalleryModal(productId, initialSrc) {
+function openGalleryModal(productId, initialSrc, title) {
     viewerState.images = initialSrc ? [initialSrc] : [];
     viewerState.currentIndex = 0;
+    viewerState.title = (title || '').trim() || resolveViewerTitle(productId);
     updateViewerUI();
     openModal('image-viewer-modal');
 
@@ -3219,7 +3408,13 @@ function updateViewerUI() {
     const prevBtn = document.getElementById('viewer-prev-btn');
     const nextBtn = document.getElementById('viewer-next-btn');
     const counter = document.getElementById('viewer-counter');
+    const caption = document.getElementById('viewer-caption');
     const total = viewerState.images.length;
+
+    // Footer caption: product name when known, gesture hint otherwise
+    if (caption) {
+        caption.textContent = viewerState.title || VIEWER_DEFAULT_CAPTION;
+    }
 
     if (total === 0) return;
 

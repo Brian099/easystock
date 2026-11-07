@@ -53,7 +53,8 @@ if ($method === 'GET') {
         $low_stock = (int)($_GET['low_stock'] ?? 0);
         
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $limit = max(1, min(100, (int)($_GET['limit'] ?? 30)));
+        // Upper bound must match PRODUCT_PAGE_SIZES in assets/js/app.js (max 1000)
+        $limit = max(1, min(1000, (int)($_GET['limit'] ?? 30)));
         $offset = ($page - 1) * $limit;
         
         $where_clauses = [];
@@ -139,12 +140,40 @@ if ($method === 'GET') {
         $data_stmt->execute($params);
         $products = $data_stmt->fetchAll();
         
-        // Append first image to each product for the UI card view
-        foreach ($products as &$p) {
-            $img_stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ? LIMIT 1");
-            $img_stmt->execute([$p['id']]);
-            $img = $img_stmt->fetchColumn();
-            $p['image'] = $img ?: null;
+        // Append first image to each product for the UI card view.
+        // Batched into a single query: with page sizes up to 1000 rows the old
+        // per-product query would issue 1000 extra round trips.
+        if (!empty($products)) {
+            $ids = [];
+            foreach ($products as $p) {
+                $ids[] = (int)$p['id'];
+            }
+            $min_id = min($ids);
+            $max_id = max($ids);
+
+            // product_id BETWEEN ? AND ? keeps the placeholder count at 2,
+            // so this stays safe on SQLite builds with a low variable limit.
+            $img_stmt = $pdo->prepare("
+                SELECT i.product_id, i.image_path
+                FROM product_images i
+                WHERE i.id IN (
+                    SELECT MIN(id) FROM product_images WHERE product_id BETWEEN ? AND ? GROUP BY product_id
+                )
+            ");
+            $img_stmt->bindValue(1, $min_id, PDO::PARAM_INT);
+            $img_stmt->bindValue(2, $max_id, PDO::PARAM_INT);
+            $img_stmt->execute();
+
+            $image_map = [];
+            foreach ($img_stmt->fetchAll() as $row) {
+                $image_map[(int)$row['product_id']] = $row['image_path'];
+            }
+
+            foreach ($products as &$p) {
+                $pid = (int)$p['id'];
+                $p['image'] = isset($image_map[$pid]) ? $image_map[$pid] : null;
+            }
+            unset($p);
         }
         
         send_json([

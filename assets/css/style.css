@@ -1316,9 +1316,65 @@ button, input, select, textarea {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
     margin-top: 25px;
     margin-bottom: 10px;
+}
+
+/* Page-size selector (sits next to the page buttons) */
+.page-size-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.page-size-control .page-size-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.page-size-select {
+    height: 32px;
+    min-width: 64px;
+    padding: 0 26px 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2364748b'%3E%3Cpath d='M4.5 6l3.5 4 3.5-4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.page-size-select:hover {
+    border-color: var(--primary-color);
+}
+
+.page-size-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+@media (max-width: 575px) {
+    .page-size-control {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .page-btn {
@@ -2729,11 +2785,16 @@ input:checked + .slider:before {
 }
 
 .viewer-caption {
-    color: rgba(255, 255, 255, 0.75) !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
     margin: 0 !important;
     text-align: center !important;
+    max-width: min(92vw, 900px) !important;
+    padding: 0 12px !important;
+    line-height: 1.45 !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
 }
 
 /* Transaction Search Results List */
@@ -3590,6 +3651,65 @@ input:checked + .slider:before {
 
 .viewer-img-container img.is-zoomed {
     cursor: zoom-out !important;
+}
+
+/* --------------------------------------------------
+ * Product thumbnail hover preview (medium image)
+ * Small thumb in the list -> medium preview on hover -> large viewer on click
+ * position:fixed so the .table-responsive scroll container cannot clip it
+ * -------------------------------------------------- */
+.thumb-hover-preview {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1500;
+    width: 280px;
+    height: 280px;
+    padding: 8px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.96);
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+    pointer-events: none;
+}
+
+.thumb-hover-preview.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+.thumb-hover-preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* Slightly stronger affordance on the small thumbnail itself */
+.product-thumbnail-cell img,
+.card-thumb-area .table-thumb {
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.product-thumbnail-cell img:hover,
+.card-thumb-area .table-thumb:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+/* Touch devices: no hover preview, tap goes straight to the large viewer */
+@media (hover: none) {
+    .thumb-hover-preview {
+        display: none !important;
+    }
 }
 
 
