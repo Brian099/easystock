@@ -196,8 +196,35 @@ elseif ($method === 'POST') {
             send_json(['error' => 'Product ID is required.'], 400);
         }
         
-        if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
-            send_json(['error' => 'No image uploaded or upload error occurred.'], 400);
+        if (!isset($_FILES['image'])) {
+            send_json([
+                'error' => '未接收到图片文件，可能是上传体积超过了服务器 post_max_size='
+                    . ini_get('post_max_size') . ' 的限制。'
+            ], 400);
+        }
+
+        if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            // Surface the real reason instead of a generic failure: on phones the
+            // usual cause is a photo larger than upload_max_filesize, not a bug.
+            $upload_error_map = [
+                UPLOAD_ERR_INI_SIZE   => '图片超过服务器 upload_max_filesize 限制',
+                UPLOAD_ERR_FORM_SIZE  => '图片超过表单允许的最大体积',
+                UPLOAD_ERR_PARTIAL    => '图片只上传了一部分，请重试',
+                UPLOAD_ERR_NO_FILE    => '未选择图片文件',
+                UPLOAD_ERR_NO_TMP_DIR => '服务器缺少临时目录',
+                UPLOAD_ERR_CANT_WRITE => '服务器写入临时文件失败',
+                UPLOAD_ERR_EXTENSION  => '上传被服务器扩展中断',
+            ];
+            $error_code = (int)$_FILES['image']['error'];
+            $error_text = isset($upload_error_map[$error_code])
+                ? $upload_error_map[$error_code]
+                : ('上传失败，错误码 ' . $error_code);
+
+            send_json([
+                'error' => $error_text . '（服务器 upload_max_filesize='
+                    . ini_get('upload_max_filesize') . ', post_max_size='
+                    . ini_get('post_max_size') . '）'
+            ], 400);
         }
         
         $file = $_FILES['image'];

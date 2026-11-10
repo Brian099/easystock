@@ -1319,7 +1319,7 @@ function loadProductsList() {
                 // Image or icon fallback
                 let tableImgHtml = '<i class="fa-solid fa-cube" style="font-size: 20px; color: var(--text-light);"></i>';
                 if (p.image) {
-                    tableImgHtml = `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="table-thumb" style="width: 36px; height: 36px; object-fit: cover; border-radius: var(--border-radius-sm); cursor: pointer;">`;
+                    tableImgHtml = `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="table-thumb" loading="lazy" decoding="async" style="width: 36px; height: 36px; object-fit: cover; border-radius: var(--border-radius-sm); cursor: pointer;">`;
                 }
 
                 let tableDeleteActionHtml = '';
@@ -1387,7 +1387,7 @@ function loadProductsList() {
 
                 let cardImgHtml = '<i class="fa-solid fa-cube" style="font-size: 18px; color: var(--text-light);"></i>';
                 if (p.image) {
-                    cardImgHtml = `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="table-thumb" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; cursor: pointer;">`;
+                    cardImgHtml = `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="table-thumb" loading="lazy" decoding="async" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; cursor: pointer;">`;
                 }
 
                 let cardDeleteActionHtml = '';
@@ -2640,7 +2640,27 @@ async function compressAndNormalizeImage(file, maxDimension = 1600, quality = 0.
     // 1. Try modern createImageBitmap first (hardware accelerated, auto EXIF orientation, strips gain maps)
     if (typeof createImageBitmap === 'function') {
         try {
-            const bitmap = await createImageBitmap(file);
+            // Decode straight to a bounded width. A full-resolution phone photo costs
+            // 12MP ≈ 48MB and 48MP ≈ 192MB once decoded as RGBA, which is enough for a
+            // mobile browser tab to die with "out of memory" long before the canvas below
+            // gets a chance to shrink it. Resizing during decode keeps the peak near
+            // maxDimension instead. Applied only to larger files so that already-small
+            // images are never upscaled.
+            let bitmap;
+            if (file.size > 500 * 1024) {
+                try {
+                    bitmap = await createImageBitmap(file, {
+                        resizeWidth: maxDimension,
+                        resizeQuality: 'high'
+                    });
+                } catch (e) {
+                    // Browser ignores or rejects the resize options -> plain decode
+                    bitmap = await createImageBitmap(file);
+                }
+            } else {
+                bitmap = await createImageBitmap(file);
+            }
+
             let width = bitmap.width;
             let height = bitmap.height;
 
@@ -3015,7 +3035,7 @@ function loadProductImages(productId) {
                 const div = document.createElement('div');
                 div.className = 'image-preview-item';
                 div.innerHTML = `
-                    <img src="${img.image_path}" alt="Image" style="cursor: pointer;">
+                    <img src="${img.image_path}" alt="Image" loading="lazy" decoding="async" style="cursor: pointer;">
                     <button type="button" class="del-img-btn" data-img-id="${img.id}"><i class="fa-solid fa-xmark"></i></button>
                 `;
 
